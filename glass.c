@@ -136,7 +136,12 @@ void glog(const char *msg, u8 type) {
 
 int main() {
     XEvent ev;
+    system("mkdir -p ~/.glass");
+    system("touch ~/.glass/log");
+    system("touch ~/.glass/rc.sh");
+    system("chmod +x ~/.glass/rc.sh");
     glog("Starting Glass...", LOGTYPE_INIT);
+
 
     dpy = XOpenDisplay(NULL);
     if (!dpy) {
