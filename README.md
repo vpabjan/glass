@@ -15,12 +15,15 @@ It is designed to be simple, fast, and highly configurable by recompiling the so
 
 ---
 
+<img width="960" height="540" alt="hi" src="https://github.com/user-attachments/assets/00589574-7d1e-4cee-90ae-2ca1d28b4b89" />
+
+
 ## Installation
 
 Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/glass.git
+git clone https://github.com/vpabjan/glass.git
 cd glass
 ./build.sh
 ```
