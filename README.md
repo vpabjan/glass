@@ -1,21 +1,21 @@
 # Glass WM
 
 **Glass** is a lightweight X11 window manager written in C using Xlib.\
-It is designed to be simple, fast, and highly configurable by recompiling the source.
+It is designed to be simple, fast, and highly configurable.
 
 ---
 
 ## Features
 
 - Minimal and lightweight
-- Easy keybind customization
 - Workspace management (1-9)
 - Basic window manipulation: move, resize, close
 - Compatible with compositors, bars, and wallpapers
 
 ---
 
-<img width="960" height="540" alt="hi" src="https://github.com/user-attachments/assets/00589574-7d1e-4cee-90ae-2ca1d28b4b89" />
+<img width="960" height="540" alt="A screenshot showing Glass" src="https://github.com/user-attachments/assets/2d158a98-b1ab-4438-a9e2-b6c1c46581ea" />
+
 
 
 ## Installation
@@ -25,14 +25,11 @@ Clone the repository:
 ```bash
 git clone https://github.com/vpabjan/glass.git
 cd glass
-./build.sh
+chmod +x install.sh
+./install.sh
 ```
 
-Then start it from your `.xinitrc`:
-
-```bash
-exec /path/to/compiled/glass
-```
+Then start it using start-glass on a TTY. Glass is **not** installed system-wide, it lives in ~./.glass.
 
 ---
 
