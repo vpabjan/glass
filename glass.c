@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
+#include "ewmh.h"
+#include "types.h"
 
 #define MOD Mod4Mask   // Super key
 #define KEY_CLOSE XK_q
@@ -13,12 +15,9 @@
 #define KEY_TERMINAL XK_Return
 #define KEY_DRUN XK_d
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef int8_t i8;
-typedef int16_t i16;
-typedef int32_t i32;
+#define CMD_TERM "alacritty"
+
+
 
 typedef struct gClient {
     Window window;
@@ -38,6 +37,9 @@ int win_x, win_y, win_w, win_h;
 Window target;
 gClient *clients = NULL;
 u8 currentWorkspace = 0;
+gEWMH ewmh;
+Window wmcheck;
+
 
 void add_client(Window w) {
     gClient *c = calloc(1, sizeof(gClient));
@@ -78,6 +80,7 @@ void switch_workspace(u8 ws) {
             XUnmapWindow(dpy, c->window);
     }
     currentWorkspace = ws;
+    g_ewmh_set_current_desktop(dpy, root, &ewmh, ws);
 }
 
 void grab_key(KeySym sym) {
@@ -152,6 +155,16 @@ int main() {
 
     root = DefaultRootWindow(dpy);
 
+    g_ewmh_init(dpy, &ewmh);
+
+    wmcheck = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
+
+    g_ewmh_set_check(dpy, root, wmcheck, &ewmh);
+    g_ewmh_set_wm_name(dpy, wmcheck, &ewmh, "Glass");
+    g_ewmh_set_supported(dpy, root, &ewmh);
+    g_ewmh_set_desktop_count(dpy, root, &ewmh, 9);
+    g_ewmh_set_current_desktop(dpy, root, &ewmh, currentWorkspace);
+
     XGrabButton(dpy, Button1, MOD, root, True,
                 ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
                 GrabModeAsync, GrabModeAsync, None, None);
@@ -165,6 +178,8 @@ int main() {
     grab_key(KEY_CLOSE);
     grab_key(KEY_FULLSCREEN);
     grab_key(KEY_TERMINAL);
+
+
     //XGrabButton(dpy, Button1, 0, root, True,
     //            ButtonPressMask,
     //            GrabModeAsync, GrabModeAsync, None, None);
@@ -187,6 +202,7 @@ int main() {
 
     for (int i = 0; i < 9; i++) {
         grab_key(XK_1 + i);
+        XGrabKey(dpy, XKeysymToKeycode(dpy, XK_1 + i), MOD | ShiftMask, root, True, GrabModeAsync, GrabModeAsync);
     }
 
     glog("Running rc.sh", LOGTYPE_INIT);
@@ -238,6 +254,9 @@ int main() {
 
             XRaiseWindow(dpy, target);
             XSetInputFocus(dpy, target, RevertToPointerRoot, CurrentTime);
+
+            g_ewmh_set_active_window(dpy, root, &ewmh, target);
+
 
             XWindowAttributes attr;
             XGetWindowAttributes(dpy, target, &attr);
@@ -305,11 +324,23 @@ int main() {
                         exit(0);
                         break;
                     case KEY_TERMINAL:
-                        spawn("alacritty");
+                        spawn(CMD_TERM);
                         break;
                 }
                 if (sym >= XK_1 && sym <= XK_9) {
-                    switch_workspace(sym - XK_1);
+
+                    if (ev.xkey.state & ShiftMask) {
+                        if (focused && focused != root && focused != None) {
+                            gClient* hi = find_client(focused);
+                            if (!(sym - XK_1 == currentWorkspace)) {
+                                hi->workspace = sym - XK_1;
+                                XUnmapWindow(dpy, focused);
+                            }
+                        }
+                    } else {
+                        switch_workspace(sym - XK_1);
+                    }
+
                 }
 
             }
