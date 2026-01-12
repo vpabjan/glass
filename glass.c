@@ -73,6 +73,9 @@ void switch_workspace(u8 ws) {
     if (ws == currentWorkspace) return;
 
     for (gClient *c = clients; c; c = c->next) {
+        XWindowAttributes a;
+        if (!XGetWindowAttributes(dpy, c->window, &a))
+            continue;
         if (c->workspace == ws) {
             XMapWindow(dpy, c->window);
             XRaiseWindow(dpy, c->window);
@@ -301,6 +304,7 @@ int main() {
         case KeyPress:
             KeySym sym = XKeycodeToKeysym(dpy, ev.xkey.keycode, 0);
             Window focused;
+
             int revert;
             XGetInputFocus(dpy, &focused, &revert);
 
@@ -308,9 +312,10 @@ int main() {
             if ((ev.xkey.state & MOD)) { // this needs to detect mod
                 switch (sym) {
                     case KEY_CLOSE:
-                        if(focused && focused != root && focused != None) {
+                        gClient* c = find_client(focused);
+                        if (c)
                             XKillClient(dpy, focused);
-                        }
+
                         break;
                     case KEY_DRUN:
                         spawn("rofi -show drun");
@@ -332,7 +337,7 @@ int main() {
                     if (ev.xkey.state & ShiftMask) {
                         if (focused && focused != root && focused != None) {
                             gClient* hi = find_client(focused);
-                            if (!(sym - XK_1 == currentWorkspace)) {
+                            if (!(sym - XK_1 == currentWorkspace) && hi) {
                                 hi->workspace = sym - XK_1;
                                 XUnmapWindow(dpy, focused);
                             }
