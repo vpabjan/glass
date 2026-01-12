@@ -16,6 +16,11 @@
 #define KEY_DRUN XK_d
 
 #define CMD_TERM "alacritty"
+#define CMD_DMENU "rofi -show drun"
+
+int rx, ry, wx, wy;
+unsigned int mask;
+Window root_ret, child_ret;
 
 
 
@@ -37,6 +42,7 @@ int win_x, win_y, win_w, win_h;
 Window target;
 gClient *clients = NULL;
 u8 currentWorkspace = 0;
+Window focused;
 gEWMH ewmh;
 Window wmcheck;
 
@@ -95,6 +101,22 @@ void grab_key(KeySym sym) {
     XGrabKey(dpy, code, MOD | LockMask | Mod2Mask, root, True, GrabModeAsync, GrabModeAsync);
 }
 
+void switch_focus(Window target) {
+    gClient *f = find_client(focused);
+    gClient *c = find_client(target);
+
+    if (f) {
+        XSetWindowBorder(dpy, focused, BlackPixel(dpy, DefaultScreen(dpy)));
+    }
+
+    if (c) {
+        XSetWindowBorder(dpy, target, WhitePixel(dpy, DefaultScreen(dpy)));
+    }
+
+
+    focused = target;
+}
+
 
 
 void spawn(const char *cmd) {
@@ -142,13 +164,10 @@ void glog(const char *msg, u8 type) {
 
 int main() {
     XEvent ev;
-    system("mkdir -p ~/.glass");
-    system("touch ~/.glass/log");
-    system("touch ~/.glass/rc.sh");
-    system("chmod +x ~/.glass/rc.sh");
     glog("Starting Glass...", LOGTYPE_INIT);
 
 
+    glog("Opening display", LOGTYPE_INIT);
     dpy = XOpenDisplay(NULL);
     if (!dpy) {
         fprintf(stderr, "cannot open display\n");
@@ -157,6 +176,8 @@ int main() {
     }
 
     root = DefaultRootWindow(dpy);
+
+    glog("Initializing ewmh...", LOGTYPE_INIT);
 
     g_ewmh_init(dpy, &ewmh);
 
@@ -167,6 +188,8 @@ int main() {
     g_ewmh_set_supported(dpy, root, &ewmh);
     g_ewmh_set_desktop_count(dpy, root, &ewmh, 9);
     g_ewmh_set_current_desktop(dpy, root, &ewmh, currentWorkspace);
+
+    glog("Grabbing keys and buttons...", LOGTYPE_INIT);
 
     XGrabButton(dpy, Button1, MOD, root, True,
                 ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
@@ -208,8 +231,15 @@ int main() {
         XGrabKey(dpy, XKeysymToKeycode(dpy, XK_1 + i), MOD | ShiftMask, root, True, GrabModeAsync, GrabModeAsync);
     }
 
-    glog("Running rc.sh", LOGTYPE_INIT);
+    XQueryPointer(dpy, root,
+                  &root_ret, &child_ret,
+                  &rx, &ry, &wx, &wy,
+                  &mask);
+
+    glog("Running rc.sh...", LOGTYPE_INIT);
     spawn("bash ~/.glass/rc.sh");
+
+    glog("Done!", LOGTYPE_INIT);
 
 
     for (;;) {
@@ -232,13 +262,15 @@ int main() {
             add_client(w);
 
             gClient *c = find_client(w);
-            if (c->workspace == currentWorkspace) {
+            if (c && c->workspace == currentWorkspace) {
                 XMapWindow(dpy, w);
                 XRaiseWindow(dpy, w);
+                switch_focus(w);
             } else {
                 XUnmapWindow(dpy, w);
             }
 
+            glog("New client, hello!", LOGTYPE_WINDOW);
             break;
         }
 
@@ -255,8 +287,12 @@ int main() {
             target = ev.xbutton.subwindow;
             if (!target) break;
 
+            if (target == root) break;
+
             XRaiseWindow(dpy, target);
             XSetInputFocus(dpy, target, RevertToPointerRoot, CurrentTime);
+
+            switch_focus(target);
 
             g_ewmh_set_active_window(dpy, root, &ewmh, target);
 
@@ -303,7 +339,7 @@ int main() {
 
         case KeyPress:
             KeySym sym = XKeycodeToKeysym(dpy, ev.xkey.keycode, 0);
-            Window focused;
+
 
             int revert;
             XGetInputFocus(dpy, &focused, &revert);
@@ -313,14 +349,17 @@ int main() {
                 switch (sym) {
                     case KEY_CLOSE:
                         gClient* c = find_client(focused);
-                        if (c)
+                        if (c) {
                             XKillClient(dpy, focused);
+                            glog("Killing client on user request", LOGTYPE_WINDOW);
+                        }
 
                         break;
                     case KEY_DRUN:
-                        spawn("rofi -show drun");
+                        glog("Launching dmenu...", LOGTYPE_KEY);
+                        spawn(CMD_DMENU);
                         break;
-                    case KEY_FULLSCREEN:
+                    case KEY_FULLSCREEN: // todo: make it actually useful
                         XMoveWindow(dpy, focused, 0, 0);
                         XResizeWindow(dpy, focused, XDisplayWidth(dpy, XDefaultScreen(dpy)), XDisplayHeight(dpy, XDefaultScreen(dpy)));
                         break;
@@ -329,7 +368,9 @@ int main() {
                         exit(0);
                         break;
                     case KEY_TERMINAL:
+                        glog("Launching terminal...", LOGTYPE_KEY);
                         spawn(CMD_TERM);
+
                         break;
                 }
                 if (sym >= XK_1 && sym <= XK_9) {
