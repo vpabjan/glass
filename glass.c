@@ -101,20 +101,23 @@ void grab_key(KeySym sym) {
     XGrabKey(dpy, code, MOD | LockMask | Mod2Mask, root, True, GrabModeAsync, GrabModeAsync);
 }
 
-void switch_focus(Window target) {
+void switch_focus(Window trg) {
     gClient *f = find_client(focused);
-    gClient *c = find_client(target);
+    gClient *c = find_client(trg);
 
     if (f) {
         XSetWindowBorder(dpy, focused, BlackPixel(dpy, DefaultScreen(dpy)));
     }
 
     if (c) {
-        XSetWindowBorder(dpy, target, WhitePixel(dpy, DefaultScreen(dpy)));
+        XSetWindowBorder(dpy, trg, WhitePixel(dpy, DefaultScreen(dpy)));
     }
 
+    XRaiseWindow(dpy, trg);
 
-    focused = target;
+    XSetInputFocus(dpy, trg, RevertToPointerRoot, CurrentTime);
+
+    focused = trg;
 }
 
 
@@ -199,6 +202,14 @@ int main() {
                 ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
                 GrabModeAsync, GrabModeAsync, None, None);
 
+    XGrabButton(dpy, Button4, MOD, root, True,
+                ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+                GrabModeAsync, GrabModeAsync, None, None);
+
+    XGrabButton(dpy, Button5, MOD, root, True,
+                ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
+                GrabModeAsync, GrabModeAsync, None, None);
+
     grab_key(KEY_DRUN);
     grab_key(KEY_EXIT);
     grab_key(KEY_CLOSE);
@@ -224,7 +235,7 @@ int main() {
     XGrabKey(dpy, XKeysymToKeycode(dpy, KEY_FULLSCREEN), MOD, root,
             True, GrabModeAsync, GrabModeAsync);
     */
-    XSelectInput(dpy, root, SubstructureRedirectMask | SubstructureNotifyMask | KeyPressMask);
+    XSelectInput(dpy, root, SubstructureRedirectMask | SubstructureNotifyMask | KeyPressMask | ButtonPressMask);
 
     for (int i = 0; i < 9; i++) {
         grab_key(XK_1 + i);
@@ -254,6 +265,7 @@ int main() {
             XGetWindowAttributes(dpy, w, &attrib);
             if (attrib.override_redirect) {
                 // this is probably a panel or menu; don't track for workspaces
+                glog("Panel detected! (override_redirect)", LOGTYPE_WINDOW);
                 break;
             }
             XSetWindowBorderWidth(dpy, w, 4);
@@ -263,19 +275,22 @@ int main() {
 
             gClient *c = find_client(w);
             if (c && c->workspace == currentWorkspace) {
-                XMapWindow(dpy, w);
-                XRaiseWindow(dpy, w);
-                switch_focus(w);
-            } else {
-                XUnmapWindow(dpy, w);
+                XMapWindow(dpy, c->window);
+                XRaiseWindow(dpy, c->window);
+                switch_focus(c->window);
+                glog("New client, hello!", LOGTYPE_WINDOW);
             }
+//            else {
+//                XUnmapWindow(dpy, w);
+//            }
 
-            glog("New client, hello!", LOGTYPE_WINDOW);
+
             break;
         }
 
         case DestroyNotify:
             remove_client(ev.xdestroywindow.window);
+            glog("Client destroyed.", LOGTYPE_WINDOW);
             break;
 
         case UnmapNotify:
@@ -284,13 +299,51 @@ int main() {
 
 
         case ButtonPress:
+            if (ev.xbutton.state & MOD && (ev.xbutton.button == Button4 || ev.xbutton.button == Button5)) {
+
+                gClient* temp;
+
+                if (ev.xbutton.state & Button1Mask && moving) {
+                    temp = find_client(focused);
+                    if (!temp) {
+                        temp = 0;
+                    }
+                }
+
+
+                if (ev.xbutton.button == Button4) {
+                    if (currentWorkspace < 8) {
+                        if (temp)
+                            temp->workspace = currentWorkspace + 1;
+                        switch_workspace(currentWorkspace + 1);
+                    } else {
+                        if (temp)
+                            temp->workspace = 0;
+                        switch_workspace(0);
+                    }
+                } else {
+                    if (currentWorkspace > 0) {
+                        if (temp)
+                            temp->workspace = currentWorkspace - 1;
+                        switch_workspace(currentWorkspace - 1);
+                    } else {
+                        if (temp)
+                            temp->workspace = 8;
+                        switch_workspace(8);
+                    }
+                }
+
+
+
+
+                break;
+            }
+
             target = ev.xbutton.subwindow;
+
             if (!target) break;
 
             if (target == root) break;
-
-            XRaiseWindow(dpy, target);
-            XSetInputFocus(dpy, target, RevertToPointerRoot, CurrentTime);
 
             switch_focus(target);
 
@@ -300,7 +353,7 @@ int main() {
             XWindowAttributes attr;
             XGetWindowAttributes(dpy, target, &attr);
 
-            if (ev.xbutton.state & MOD) {
+            if (ev.xbutton.state & MOD && (ev.xbutton.button == Button1 || ev.xbutton.button == Button3)) {
                 win_x = attr.x;
                 win_y = attr.y;
                 win_w = attr.width;
@@ -333,8 +386,11 @@ int main() {
             break;
 
         case ButtonRelease:
-            moving = resizing = 0;
-            target = None;
+            if (moving || resizing && (ev.xbutton.button == Button1 || ev.xbutton.button == Button3)) {
+                moving = resizing = 0;
+                target = None;
+            }
+
             break;
 
         case KeyPress:
