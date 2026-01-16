@@ -1,11 +1,13 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #include <X11/keysym.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
 #include "ewmh.h"
+#include "config.h"
 #include "types.h"
 
 #define MOD Mod4Mask   // Super key
@@ -136,6 +138,7 @@ void spawn(const char *cmd) {
 #define LOGTYPE_KEY 2
 #define LOGTYPE_ERR 3
 #define LOGTYPE_WORKSPACE 4
+#define LOGTYPE_RUNTIME 5
 
 void glog(const char *msg, u8 type) {
     char path[256];
@@ -159,6 +162,9 @@ void glog(const char *msg, u8 type) {
         case LOGTYPE_WORKSPACE:
             fprintf(f, "[workspace] ");
             break;
+        case LOGTYPE_RUNTIME:
+            fprintf(f, "[runtime] ");
+            break;
     }
 
     fprintf(f, "%s\n", msg);
@@ -167,7 +173,14 @@ void glog(const char *msg, u8 type) {
 
 int main() {
     XEvent ev;
+    gConfig* conf;
     glog("Starting Glass...", LOGTYPE_INIT);
+
+    glog("Loading config...", LOGTYPE_INIT);
+    conf = read_config();
+    if (!conf) {
+        glog("Cannot read config.", LOGTYPE_ERR);
+    }
 
 
     glog("Opening display", LOGTYPE_INIT);
@@ -210,11 +223,13 @@ int main() {
                 ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
                 GrabModeAsync, GrabModeAsync, None, None);
 
-    grab_key(KEY_DRUN);
-    grab_key(KEY_EXIT);
-    grab_key(KEY_CLOSE);
-    grab_key(KEY_FULLSCREEN);
-    grab_key(KEY_TERMINAL);
+    gBind* a = conf->bindhead;
+
+    while (a) {
+        grab_key(a->bind);
+        a = a->next;
+        printf("Got Keybind %d", a);
+    }
 
 
     //XGrabButton(dpy, Button1, 0, root, True,
@@ -395,42 +410,40 @@ int main() {
 
         case KeyPress:
             KeySym sym = XKeycodeToKeysym(dpy, ev.xkey.keycode, 0);
+            //KeySym sym = XLookupKeysym(&ev.xkey,
+            //    (ev.xkey.state & ShiftMask) ? 1 : 0);
+            if (!(ev.xkey.state & MOD))
+                break;
 
+            gBind* bind = conf->bindhead;
+            while (bind && bind->bind != sym)
+                bind = bind->next;
+
+            if (!bind)
+                break;
 
             int revert;
             XGetInputFocus(dpy, &focused, &revert);
 
-
-            if ((ev.xkey.state & MOD)) { // this needs to detect mod
-                switch (sym) {
-                    case KEY_CLOSE:
-                        gClient* c = find_client(focused);
-                        if (c) {
-                            XKillClient(dpy, focused);
-                            glog("Killing client on user request", LOGTYPE_WINDOW);
-                        }
-
-                        break;
-                    case KEY_DRUN:
-                        glog("Launching dmenu...", LOGTYPE_KEY);
-                        spawn(CMD_DMENU);
-                        break;
-                    case KEY_FULLSCREEN: // todo: make it actually useful
-                        XMoveWindow(dpy, focused, 0, 0);
-                        XResizeWindow(dpy, focused, XDisplayWidth(dpy, XDefaultScreen(dpy)), XDisplayHeight(dpy, XDefaultScreen(dpy)));
-                        break;
-                    case KEY_EXIT:
-                        XCloseDisplay(dpy);
-                        exit(0);
-                        break;
-                    case KEY_TERMINAL:
-                        glog("Launching terminal...", LOGTYPE_KEY);
-                        spawn(CMD_TERM);
-
-                        break;
+            switch(bind->type) {
+                case (BQUIT):
+                    gClient* c = find_client(focused);
+                    if (c) {
+                        XKillClient(dpy, focused);
+                        glog("Killing client on user request", LOGTYPE_WINDOW);
+                    }
+                    break;
+                case (BSPAWN):
+                    spawn((char*)bind->data);
+                    break;
+                case (BEXIT):
+                    XCloseDisplay(dpy);
+                    glog("User used exit key. Shutting down.", LOGTYPE_RUNTIME);
+                    while (conf->bindhead != NULL) conf->bindhead = conf->bindhead->next;
+                    exit(0);
+                    break;
                 }
                 if (sym >= XK_1 && sym <= XK_9) {
-
                     if (ev.xkey.state & ShiftMask) {
                         if (focused && focused != root && focused != None) {
                             gClient* hi = find_client(focused);
@@ -442,10 +455,7 @@ int main() {
                     } else {
                         switch_workspace(sym - XK_1);
                     }
-
                 }
-
-            }
             break;
         }
     }
