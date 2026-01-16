@@ -227,11 +227,11 @@ int main() {
 
     while (a) {
         grab_key(a->bind);
-        a = a->next;
-        printf("Got Keybind %d", a);
+        if (a->type >= 0 && a->type <= 8) {
+            grab_key(a->bind & ShiftMask);
+        }
+        a=a->next;
     }
-
-
     //XGrabButton(dpy, Button1, 0, root, True,
     //            ButtonPressMask,
     //            GrabModeAsync, GrabModeAsync, None, None);
@@ -252,10 +252,12 @@ int main() {
     */
     XSelectInput(dpy, root, SubstructureRedirectMask | SubstructureNotifyMask | KeyPressMask | ButtonPressMask);
 
+    /*
     for (int i = 0; i < 9; i++) {
         grab_key(XK_1 + i);
         XGrabKey(dpy, XKeysymToKeycode(dpy, XK_1 + i), MOD | ShiftMask, root, True, GrabModeAsync, GrabModeAsync);
     }
+     */
 
     XQueryPointer(dpy, root,
                   &root_ret, &child_ret,
@@ -443,19 +445,19 @@ int main() {
                     exit(0);
                     break;
                 }
-                if (sym >= XK_1 && sym <= XK_9) {
-                    if (ev.xkey.state & ShiftMask) {
-                        if (focused && focused != root && focused != None) {
-                            gClient* hi = find_client(focused);
-                            if (!(sym - XK_1 == currentWorkspace) && hi) {
-                                hi->workspace = sym - XK_1;
-                                XUnmapWindow(dpy, focused);
-                            }
+            if (bind->type >= 0 && bind->type <= 8) {
+                if (!(ev.xkey.state & ShiftMask)) {
+                    switch_workspace(bind->type);
+                } else {
+                    if (focused && focused != root) {
+                        gClient* hi = find_client(focused);
+                        if (hi && (currentWorkspace != bind->type)) {
+                            hi->workspace = bind->type;
+                            XUnmapWindow(dpy, focused);
                         }
-                    } else {
-                        switch_workspace(sym - XK_1);
                     }
                 }
+            }
             break;
         }
     }
