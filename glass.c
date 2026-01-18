@@ -2,6 +2,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
+#include <X11/cursorfont.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -11,20 +12,10 @@
 #include "types.h"
 
 #define MOD Mod4Mask   // Super key
-#define KEY_CLOSE XK_q
-#define KEY_EXIT XK_e
-#define KEY_FULLSCREEN XK_f
-#define KEY_TERMINAL XK_Return
-#define KEY_DRUN XK_d
-
-#define CMD_TERM "alacritty"
-#define CMD_DMENU "rofi -show drun"
 
 int rx, ry, wx, wy;
 unsigned int mask;
 Window root_ret, child_ret;
-
-
 
 typedef struct gClient {
     Window window;
@@ -37,17 +28,26 @@ typedef struct gClient {
 } gClient;
 
 Display *dpy;
+
 Window root;
+Window focused;
+Window target;
+
 int moving = 0, resizing = 0;
 int start_x, start_y;
 int win_x, win_y, win_w, win_h;
-Window target;
-gClient *clients = NULL;
+
+gClient* clients = NULL;
+
+Window* panel = NULL;
+int showPanel = 1;
+
 u8 currentWorkspace = 0;
-Window focused;
+
 gEWMH ewmh;
 Window wmcheck;
 
+Cursor cursor;
 
 void add_client(Window w) {
     gClient *c = calloc(1, sizeof(gClient));
@@ -77,21 +77,47 @@ gClient *find_client(Window w) {
     return NULL;
 }
 
+void switch_focus(Window trg) {
+    gClient *f = find_client(focused);
+    gClient *c = find_client(trg);
+
+    if (f) {
+        XSetWindowBorder(dpy, focused, 0x000000);
+    }
+
+    if (c) {
+        XSetWindowBorder(dpy, trg, 0xFFFFFF);
+    }
+
+    XSetInputFocus(dpy, trg, RevertToPointerRoot, CurrentTime);
+
+    // bp1
+    focused = trg;
+    g_ewmh_set_active_window(dpy, root, &ewmh, focused);
+
+}
+
 void switch_workspace(u8 ws) {
     if (ws == currentWorkspace) return;
+    Window* last = NULL;
 
     for (gClient *c = clients; c; c = c->next) {
         XWindowAttributes a;
         if (!XGetWindowAttributes(dpy, c->window, &a))
             continue;
         if (c->workspace == ws) {
+
             XMapWindow(dpy, c->window);
-            XRaiseWindow(dpy, c->window);
+            last = &c->window;
+            //XRaiseWindow(dpy, c->window);
         } else
             XUnmapWindow(dpy, c->window);
     }
     currentWorkspace = ws;
     g_ewmh_set_current_desktop(dpy, root, &ewmh, ws);
+    if (last) {
+        switch_focus(*last);
+    }
 }
 
 void grab_key(KeySym sym) {
@@ -102,27 +128,6 @@ void grab_key(KeySym sym) {
     XGrabKey(dpy, code, MOD | Mod2Mask, root, True, GrabModeAsync, GrabModeAsync);
     XGrabKey(dpy, code, MOD | LockMask | Mod2Mask, root, True, GrabModeAsync, GrabModeAsync);
 }
-
-void switch_focus(Window trg) {
-    gClient *f = find_client(focused);
-    gClient *c = find_client(trg);
-
-    if (f) {
-        XSetWindowBorder(dpy, focused, BlackPixel(dpy, DefaultScreen(dpy)));
-    }
-
-    if (c) {
-        XSetWindowBorder(dpy, trg, WhitePixel(dpy, DefaultScreen(dpy)));
-    }
-
-    XRaiseWindow(dpy, trg);
-
-    XSetInputFocus(dpy, trg, RevertToPointerRoot, CurrentTime);
-
-    focused = trg;
-}
-
-
 
 void spawn(const char *cmd) {
     if (fork() == 0) {
@@ -193,6 +198,10 @@ int main() {
 
     root = DefaultRootWindow(dpy);
 
+    cursor = XCreateFontCursor(dpy, XC_left_ptr);
+
+    XDefineCursor(dpy, root, cursor);
+
     glog("Initializing ewmh...", LOGTYPE_INIT);
 
     g_ewmh_init(dpy, &ewmh);
@@ -232,32 +241,9 @@ int main() {
         }
         a=a->next;
     }
-    //XGrabButton(dpy, Button1, 0, root, True,
-    //            ButtonPressMask,
-    //            GrabModeAsync, GrabModeAsync, None, None);
 
-
-    /*
-    XGrabKey(dpy, XKeysymToKeycode(dpy, KEY_DRUN), MOD, root,
-             True, GrabModeAsync, GrabModeAsync);
-
-    XGrabKey(dpy, XKeysymToKeycode(dpy, KEY_EXIT), MOD, root,
-            True, GrabModeAsync, GrabModeAsync);
-
-    XGrabKey(dpy, XKeysymToKeycode(dpy, KEY_CLOSE), MOD, root,
-            True, GrabModeAsync, GrabModeAsync);
-
-    XGrabKey(dpy, XKeysymToKeycode(dpy, KEY_FULLSCREEN), MOD, root,
-            True, GrabModeAsync, GrabModeAsync);
-    */
     XSelectInput(dpy, root, SubstructureRedirectMask | SubstructureNotifyMask | KeyPressMask | ButtonPressMask);
 
-    /*
-    for (int i = 0; i < 9; i++) {
-        grab_key(XK_1 + i);
-        XGrabKey(dpy, XKeysymToKeycode(dpy, XK_1 + i), MOD | ShiftMask, root, True, GrabModeAsync, GrabModeAsync);
-    }
-     */
 
     XQueryPointer(dpy, root,
                   &root_ret, &child_ret,
@@ -275,18 +261,41 @@ int main() {
 
         switch (ev.type) {
 
+        case LeaveNotify: {
+            break;
+        }
+
+        case EnterNotify: {
+
+            if (ev.xcrossing.window == root) break;
+            if (ev.xcrossing.mode != NotifyNormal || ev.xcrossing.detail == NotifyInferior) break;
+
+            gClient* c = find_client(ev.xcrossing.window);
+            if (!c) break;
+
+            if (moving || resizing) break;
+
+            switch_focus(c->window);
+            break;
+        }
+
         case MapRequest: {
             Window w = ev.xmaprequest.window;
+
+            if (find_client(w)) break;
 
             XWindowAttributes attrib;
             XGetWindowAttributes(dpy, w, &attrib);
             if (attrib.override_redirect) {
-                // this is probably a panel or menu; don't track for workspaces
                 glog("Panel detected! (override_redirect)", LOGTYPE_WINDOW);
+                if (!panel) {
+                    panel = &w;
+                }
                 break;
             }
             XSetWindowBorderWidth(dpy, w, 4);
             XSetWindowBorder(dpy, w, BlackPixel(dpy, DefaultScreen(dpy)));
+            XSelectInput(dpy, w, EnterWindowMask | FocusChangeMask | PropertyChangeMask | StructureNotifyMask);
 
             add_client(w);
 
@@ -296,12 +305,11 @@ int main() {
                 XRaiseWindow(dpy, c->window);
                 switch_focus(c->window);
                 glog("New client, hello!", LOGTYPE_WINDOW);
+                g_ewmh_set_window_type(dpy, c->window, &ewmh);
+                g_ewmh_set_motif_hints(dpy, c->window, 1, &ewmh);
+                g_ewmh_set_gtk_frame_extents(dpy, c->window, 1, 1, 23, 1, &ewmh);
+
             }
-//            else {
-//                XUnmapWindow(dpy, w);
-//            }
-
-
             break;
         }
 
@@ -315,44 +323,38 @@ int main() {
             break;
 
 
+        case ConfigureRequest:
+            XWindowChanges changes;
+            changes.x = ev.xconfigurerequest.x;
+            changes.y = ev.xconfigurerequest.y;
+            changes.width = ev.xconfigurerequest.width;
+            changes.height = ev.xconfigurerequest.height;
+            changes.border_width = ev.xconfigurerequest.border_width;
+            changes.sibling = ev.xconfigurerequest.above;
+            changes.stack_mode = ev.xconfigurerequest.detail;
+
+            XConfigureWindow(dpy, ev.xconfigurerequest.window, ev.xconfigurerequest.value_mask, &changes);
+            break;
+
         case ButtonPress:
             if (ev.xbutton.state & MOD && (ev.xbutton.button == Button4 || ev.xbutton.button == Button5)) {
 
-                gClient* temp;
-
-                if (ev.xbutton.state & Button1Mask && moving) {
-                    temp = find_client(focused);
-                    if (!temp) {
-                        temp = 0;
-                    }
-                }
+                gClient* temp = find_client(focused);
 
 
                 if (ev.xbutton.button == Button4) {
                     if (currentWorkspace < 8) {
-                        if (temp)
-                            temp->workspace = currentWorkspace + 1;
                         switch_workspace(currentWorkspace + 1);
                     } else {
-                        if (temp)
-                            temp->workspace = 0;
                         switch_workspace(0);
                     }
                 } else {
                     if (currentWorkspace > 0) {
-                        if (temp)
-                            temp->workspace = currentWorkspace - 1;
                         switch_workspace(currentWorkspace - 1);
                     } else {
-                        if (temp)
-                            temp->workspace = 8;
                         switch_workspace(8);
                     }
                 }
-
-
-
-
                 break;
             }
 
@@ -363,9 +365,7 @@ int main() {
             if (target == root) break;
 
             switch_focus(target);
-
-            g_ewmh_set_active_window(dpy, root, &ewmh, target);
-
+            XRaiseWindow(dpy, focused);
 
             XWindowAttributes attr;
             XGetWindowAttributes(dpy, target, &attr);
@@ -424,27 +424,42 @@ int main() {
             if (!bind)
                 break;
 
-            int revert;
-            XGetInputFocus(dpy, &focused, &revert);
 
             switch(bind->type) {
                 case (BQUIT):
-                    gClient* c = find_client(focused);
+                    gClient* c = NULL;
+                    c = find_client(focused);
                     if (c) {
                         XKillClient(dpy, focused);
+                        remove_client(focused);
                         glog("Killing client on user request", LOGTYPE_WINDOW);
+                        //XSetInputFocus(dpy, Window, int, Time)
                     }
                     break;
                 case (BSPAWN):
                     spawn((char*)bind->data);
                     break;
+                case (BPANEL): {
+                    if (!panel) break;
+                    if (showPanel) {
+                        XUnmapWindow(dpy, *panel);
+                    } else {
+                        XMapWindow(dpy, *panel);
+                    }
+                    showPanel = !showPanel;
+                    break;
+                }
                 case (BEXIT):
                     XCloseDisplay(dpy);
                     glog("User used exit key. Shutting down.", LOGTYPE_RUNTIME);
                     while (conf->bindhead != NULL) conf->bindhead = conf->bindhead->next;
+                    for (gClient* c = clients; c; c = c->next) {
+                        free(c);
+                    }
                     exit(0);
                     break;
                 }
+
             if (bind->type >= 0 && bind->type <= 8) {
                 if (!(ev.xkey.state & ShiftMask)) {
                     switch_workspace(bind->type);
