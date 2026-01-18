@@ -2,19 +2,16 @@
 
 echo "Building glass"
 
+chmod +x build.sh
 ./build.sh
-
-# echo "Adding Xsession"
-
-# sudo cp extra/glass.desktop /usr/share/xsessions/glass.desktop
 
 echo "Setting up .glass"
 
 mkdir -p ~/.glass
 touch ~/.glass/log
 touch ~/.glass/rc.sh
+chmod +x ~/.glass/rc.sh
 cp glass ~/.glass/glass
+cp extra/glass.conf ~/.glass/glass.conf
 cp extra/xinitrc ~/.glass/xinitrc
 chmod +x ~/.glass/xinitrc
-cp start-glass ~/.local/bin/start-glass
-chmod +x ~/.local/bin/start-glass
