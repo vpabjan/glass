@@ -84,14 +84,6 @@ You can use it to launch compositors, panels, or set wallpapers.
 
 ```bash
 #!/bin/bash
-
-export XDG_CURRENT_DESKTOP=Glass
-export XDG_SESSION_DESKTOP=Glass
-export DESKTOP_SESSION=glass
-export XDG_SESSION_TYPE=x11
-export XCURSOR_THEME=Adwaita
-export XCURSOR_SIZE=24
-
 # Set wallpaper
 feh --bg-scale ~/path/to/wallpaper.jpg &
 
