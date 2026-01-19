@@ -178,6 +178,13 @@ void glog(const char *msg, u8 type) {
     fclose(f);
 }
 
+int x_error_handler(Display* d, XErrorEvent*  e) {
+    char msg[512];
+    XGetErrorText(d, e->error_code, msg, sizeof(msg));
+    glog(msg, LOGTYPE_ERR);
+    return 0;
+}
+
 int main() {
     XEvent ev;
     gConfig* conf;
@@ -199,6 +206,8 @@ int main() {
         glog("Cannot open display! This error is fatal, exiting.", LOGTYPE_ERR);
         return 1;
     }
+
+    XSetErrorHandler(x_error_handler);
 
     root = DefaultRootWindow(dpy);
 
@@ -301,12 +310,14 @@ int main() {
             XSetWindowBorder(dpy, w, BlackPixel(dpy, DefaultScreen(dpy)));
             XSelectInput(dpy, w, EnterWindowMask | FocusChangeMask | PropertyChangeMask | StructureNotifyMask);
 
+            add_client(w);
+
             Window trans;
             if (XGetTransientForHint(dpy, w, &trans)) {
                 gClient* parent = find_client(trans);
-                if (parent) {
-                    add_client(w);
-                    find_client(w)->workspace = parent->workspace;
+                gClient* current = find_client(w);
+                if (parent && current) {
+                    current->workspace = parent->workspace;
                 }
             }
 
