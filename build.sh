@@ -1,5 +1,5 @@
 #!/bin/bash
-FLAGS="-std=c23 \
+FLAGS="-std=gnu23 \
 -D_FORTIFY_SOURCE=2 \
 -O2 \
 -march=native \
