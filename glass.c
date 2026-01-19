@@ -8,8 +8,9 @@
 #include <stdint.h>
 #include <unistd.h>
 #include "ewmh.h"
-#include "config.h"
+#include "config.c"
 #include "types.h"
+#include "env.c"
 
 #define MOD Mod4Mask   // Super key
 
@@ -39,7 +40,7 @@ int win_x, win_y, win_w, win_h;
 
 gClient* clients = NULL;
 
-Window* panel = NULL;
+Window panel = None;
 int showPanel = 1;
 
 u8 currentWorkspace = 0;
@@ -90,6 +91,7 @@ void switch_focus(Window trg) {
     }
 
     XSetInputFocus(dpy, trg, RevertToPointerRoot, CurrentTime);
+    XFlush(dpy);
 
     // bp1
     focused = trg;
@@ -181,12 +183,14 @@ int main() {
     gConfig* conf;
     glog("Starting Glass...", LOGTYPE_INIT);
 
+    init_env();
+
+
     glog("Loading config...", LOGTYPE_INIT);
     conf = read_config();
     if (!conf) {
         glog("Cannot read config.", LOGTYPE_ERR);
     }
-
 
     glog("Opening display", LOGTYPE_INIT);
     dpy = XOpenDisplay(NULL);
@@ -289,13 +293,24 @@ int main() {
             if (attrib.override_redirect) {
                 glog("Panel detected! (override_redirect)", LOGTYPE_WINDOW);
                 if (!panel) {
-                    panel = &w;
+                    panel = w;
                 }
                 break;
             }
             XSetWindowBorderWidth(dpy, w, 4);
             XSetWindowBorder(dpy, w, BlackPixel(dpy, DefaultScreen(dpy)));
             XSelectInput(dpy, w, EnterWindowMask | FocusChangeMask | PropertyChangeMask | StructureNotifyMask);
+
+            Window trans;
+            if (XGetTransientForHint(dpy, w, &trans)) {
+                gClient* parent = find_client(trans);
+                if (parent) {
+                    add_client(w);
+                    find_client(w)->workspace = parent->workspace;
+                }
+            }
+
+
 
             add_client(w);
 
@@ -314,6 +329,11 @@ int main() {
         }
 
         case DestroyNotify:
+            Window w = ev.xdestroywindow.window;
+            if (focused == w) {
+                focused = None;
+                XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+            }
             remove_client(ev.xdestroywindow.window);
             glog("Client destroyed.", LOGTYPE_WINDOW);
             break;
@@ -440,11 +460,11 @@ int main() {
                     spawn((char*)bind->data);
                     break;
                 case (BPANEL): {
-                    if (!panel) break;
+                    if (panel == None) break;
                     if (showPanel) {
-                        XUnmapWindow(dpy, *panel);
+                        XUnmapWindow(dpy, panel);
                     } else {
-                        XMapWindow(dpy, *panel);
+                        XMapWindow(dpy, panel);
                     }
                     showPanel = !showPanel;
                     break;
