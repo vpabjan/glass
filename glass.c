@@ -307,8 +307,10 @@ int main() {
                 break;
             }
             XSetWindowBorderWidth(dpy, w, 4);
-            XSetWindowBorder(dpy, w, BlackPixel(dpy, DefaultScreen(dpy)));
+            XSetWindowBorder(dpy, w, 0x000000);
             XSelectInput(dpy, w, EnterWindowMask | FocusChangeMask | PropertyChangeMask | StructureNotifyMask);
+
+            // XGrabButton(dpy, Button1, AnyModifier, w, False, ButtonPressMask, GrabModeSync, GrabModeAsync, None, None);
 
             add_client(w);
 
@@ -396,7 +398,8 @@ int main() {
             if (target == root) break;
 
             switch_focus(target);
-            XRaiseWindow(dpy, focused);
+            XRaiseWindow(dpy, target);
+            //XAllowEvents(dpy, ReplayPointer, CurrentTime);
 
             XWindowAttributes attr;
             XGetWindowAttributes(dpy, target, &attr);
@@ -415,6 +418,8 @@ int main() {
                 else if (ev.xbutton.button == Button3)
                     resizing = 1;
             }
+
+
 
             break;
 
