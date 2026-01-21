@@ -36,6 +36,7 @@ gBind* gBindAdd(gBind* tail, KeySym bind, gBindType type, void* data) {
 
 typedef struct gConfig {
     gBind* bindhead;
+    u8 warpPointer;
 } gConfig;
 
 gConfig* read_config() {
@@ -44,6 +45,7 @@ gConfig* read_config() {
     if (!conf) return NULL;
 
     conf->bindhead = NULL;
+    conf->warpPointer = 1;
 
     gBind* tail = NULL;
 
@@ -125,6 +127,14 @@ gConfig* read_config() {
             }
 
             tail = new_node;
+        } else if (strcmp(arg, "warp_pointer") == 0) {
+            char* option = strtok(NULL, delim);
+            if (!option) continue;
+            if (strcmp(option, "no") == 0) {
+                conf->warpPointer = 0;
+            } else if (strcmp(option, "yes") == 0) {
+                conf->warpPointer = 1;
+            }
         }
     }
     fclose(f);
