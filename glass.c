@@ -14,10 +14,6 @@
 
 #define MOD Mod4Mask   // Super key
 
-int rx, ry, wx, wy;
-unsigned int mask;
-Window root_ret, child_ret;
-
 typedef struct gClient {
     Window window;
     u32 height;
@@ -28,11 +24,26 @@ typedef struct gClient {
     struct gClient* next;
 } gClient;
 
+typedef struct gWorkspace {
+    u8 tile;
+} gWorkspace;
+
+int rx, ry, wx, wy;
+unsigned int mask;
+Window root_ret, child_ret;
+
 Display *dpy;
+
+gConfig* conf;
 
 Window root;
 Window focused;
+Window grabbed;
 Window target;
+
+u32 res_x;
+u32 res_y;
+
 
 int moving = 0, resizing = 0;
 int start_x, start_y;
@@ -119,6 +130,11 @@ void switch_workspace(u8 ws) {
     g_ewmh_set_current_desktop(dpy, root, &ewmh, ws);
     if (last) {
         switch_focus(*last);
+        if (conf->warpPointer) {
+            XWindowAttributes a;
+            XGetWindowAttributes(dpy, *last, &a);
+            XWarpPointer(dpy, None, focused, 0,0,0,0,a.width/2, a.height/2);
+        }
     }
 }
 
@@ -146,6 +162,7 @@ void spawn(const char *cmd) {
 #define LOGTYPE_ERR 3
 #define LOGTYPE_WORKSPACE 4
 #define LOGTYPE_RUNTIME 5
+#define LOGTYPE_BEGIN 6
 
 void glog(const char *msg, u8 type) {
     char path[256];
@@ -172,6 +189,9 @@ void glog(const char *msg, u8 type) {
         case LOGTYPE_RUNTIME:
             fprintf(f, "[runtime] ");
             break;
+        case LOGTYPE_BEGIN:
+            fprintf(f, "---------------------------------------------------------");
+            break;
     }
 
     fprintf(f, "%s\n", msg);
@@ -187,7 +207,7 @@ int x_error_handler(Display* d, XErrorEvent*  e) {
 
 int main() {
     XEvent ev;
-    gConfig* conf;
+
     glog("Starting Glass...", LOGTYPE_INIT);
 
     init_env();
@@ -199,7 +219,7 @@ int main() {
         glog("Cannot read config.", LOGTYPE_ERR);
     }
 
-    glog("Opening display", LOGTYPE_INIT);
+    glog("Initializing display...", LOGTYPE_INIT);
     dpy = XOpenDisplay(NULL);
     if (!dpy) {
         fprintf(stderr, "cannot open display\n");
@@ -214,6 +234,13 @@ int main() {
     cursor = XCreateFontCursor(dpy, XC_left_ptr);
 
     XDefineCursor(dpy, root, cursor);
+
+    XWindowAttributes rootattr;
+    XGetWindowAttributes(dpy, root, &rootattr);
+    res_x = rootattr.width;
+    res_y = rootattr.height;
+
+    //rootattr.
 
     glog("Initializing ewmh...", LOGTYPE_INIT);
 
@@ -297,6 +324,9 @@ int main() {
 
             if (find_client(w)) break;
 
+            Window h = ev.xmaprequest.parent;
+
+
             XWindowAttributes attrib;
             XGetWindowAttributes(dpy, w, &attrib);
             if (attrib.override_redirect) {
@@ -310,9 +340,11 @@ int main() {
             XSetWindowBorder(dpy, w, 0x000000);
             XSelectInput(dpy, w, EnterWindowMask | FocusChangeMask | PropertyChangeMask | StructureNotifyMask);
 
-            // XGrabButton(dpy, Button1, AnyModifier, w, False, ButtonPressMask, GrabModeSync, GrabModeAsync, None, None);
-
-            add_client(w);
+            /*
+            if (!grabbed) {
+                grabbed = w;
+            }
+             */
 
             Window trans;
             if (XGetTransientForHint(dpy, w, &trans)) {
@@ -323,8 +355,6 @@ int main() {
                 }
             }
 
-
-
             add_client(w);
 
             gClient *c = find_client(w);
@@ -332,6 +362,16 @@ int main() {
                 XMapWindow(dpy, c->window);
                 XRaiseWindow(dpy, c->window);
                 switch_focus(c->window);
+
+                if (XQueryPointer(dpy, root,
+                              &root_ret, &child_ret,
+                              &rx, &ry, &wx, &wy,
+                              &mask)) XMoveWindow(dpy, c->window, rx - attrib.width / 2, ry - attrib.height / 2);
+                else if (conf->warpPointer) {
+                    XWarpPointer(dpy, None, focused, 0,0,0,0,attrib.width/2, attrib.height/2);
+                }
+
+
                 glog("New client, hello!", LOGTYPE_WINDOW);
                 g_ewmh_set_window_type(dpy, c->window, &ewmh);
                 g_ewmh_set_motif_hints(dpy, c->window, 1, &ewmh);
@@ -398,6 +438,27 @@ int main() {
             if (target == root) break;
 
             switch_focus(target);
+
+
+            /* TODO
+
+            if (!(ev.xbutton.state & MOD) && ev.xbutton.button == Button1) {
+                if (!grabbed) {
+                    grabbed=target;
+                    break;
+                }
+                if (target != grabbed) {
+                    XUngrabButton(dpy, Button1, AnyModifier, grabbed);
+                    XGrabButton(dpy, Button1, AnyModifier, target, False, ButtonPressMask, GrabModeSync, GrabModeAsync, None, None);
+                    grabbed=target;
+                }
+                XAllowEvents(dpy, ReplayPointer, CurrentTime);
+                XRaiseWindow(dpy, target);
+                break;
+            }
+
+             */
+
             XRaiseWindow(dpy, target);
             //XAllowEvents(dpy, ReplayPointer, CurrentTime);
 
