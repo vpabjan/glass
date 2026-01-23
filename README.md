@@ -56,6 +56,7 @@ Keybinds are defined in `~/.glass/glass.conf`. To change them, use the `suprbind
 | Spawn            | >>              | D, Return       |
 | Close window     | <<              | Q               |
 | Exit glass       | <<<             | E               |
+| Cycle windows    | cycle           | Tab             |
 | Switch workspace | 1, 2, 3...      | 1, 2, 3...      |
 | Toggle panel     | panel           | 0               |
 
