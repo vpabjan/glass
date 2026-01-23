@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 typedef enum gBindType {
-    BWS1 = 0, BWS2 = 1, BWS3 = 2, BWS4 = 3, BWS5 = 4, BWS6 = 5, BWS7 = 6, BWS8 = 7, BWS9 = 8, BTERMINAL, BLAUNCHER, BSPAWN, BQUIT, BEXIT, BPANEL
+    BWS1 = 0, BWS2 = 1, BWS3 = 2, BWS4 = 3, BWS5 = 4, BWS6 = 5, BWS7 = 6, BWS8 = 7, BWS9 = 8, BTERMINAL, BLAUNCHER, BSPAWN, BQUIT, BEXIT, BPANEL, BCYCLE
 } gBindType;
 
 typedef struct gBind {
@@ -117,6 +117,8 @@ gConfig* read_config() {
                 type = BWS8;
             } else if (strcmp(action, "9") == 0){
                 type = BWS9;
+            } else if (strcmp(action, "cycle") == 0){
+                type = BCYCLE;
             } else {
                 continue;
             }

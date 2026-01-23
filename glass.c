@@ -93,17 +93,17 @@ void switch_focus(Window trg) {
     gClient *f = find_client(focused);
     gClient *c = find_client(trg);
 
-    if (f) {
+    if (f && f->window != trg) {
         XSetWindowBorder(dpy, focused, 0x000000);
     }
 
     if (c) {
         XSetWindowBorder(dpy, trg, 0xFFFFFF);
+        XSetInputFocus(dpy, trg, RevertToPointerRoot, CurrentTime);
+        XRaiseWindow(dpy, trg);
+    } else {
+        XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
     }
-
-    XSetInputFocus(dpy, trg, RevertToPointerRoot, CurrentTime);
-    XFlush(dpy);
-
     // bp1
     focused = trg;
     g_ewmh_set_active_window(dpy, root, &ewmh, focused);
@@ -112,29 +112,35 @@ void switch_focus(Window trg) {
 
 void switch_workspace(u8 ws) {
     if (ws == currentWorkspace) return;
-    Window* last = NULL;
+    Window next_focus = None;
 
     for (gClient *c = clients; c; c = c->next) {
-        XWindowAttributes a;
-        if (!XGetWindowAttributes(dpy, c->window, &a))
-            continue;
         if (c->workspace == ws) {
-
             XMapWindow(dpy, c->window);
-            last = &c->window;
-            //XRaiseWindow(dpy, c->window);
-        } else
+            if (next_focus == None) {
+                next_focus = c->window;
+            }
+        } else {
             XUnmapWindow(dpy, c->window);
+        }
     }
     currentWorkspace = ws;
     g_ewmh_set_current_desktop(dpy, root, &ewmh, ws);
-    if (last) {
-        switch_focus(*last);
+
+    if (next_focus != None) {
+        //XRaiseWindow(dpy, next_focus);
+        switch_focus(next_focus);
+
         if (conf->warpPointer) {
             XWindowAttributes a;
-            XGetWindowAttributes(dpy, *last, &a);
-            XWarpPointer(dpy, None, focused, 0,0,0,0,a.width/2, a.height/2);
+            if (XGetWindowAttributes(dpy, next_focus, &a)) {
+                XWarpPointer(dpy, None, next_focus, 0, 0, 0, 0, a.width/2, a.height/2);
+            }
         }
+    } else {
+        XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
+        focused = root;
+        g_ewmh_set_active_window(dpy, root, &ewmh, None);
     }
 }
 
@@ -156,20 +162,59 @@ void spawn(const char *cmd) {
     }
 }
 
-#define LOGTYPE_INIT 0
-#define LOGTYPE_WINDOW 1
-#define LOGTYPE_KEY 2
-#define LOGTYPE_ERR 3
-#define LOGTYPE_WORKSPACE 4
-#define LOGTYPE_RUNTIME 5
-#define LOGTYPE_BEGIN 6
+void cycle_windows() {
+    // If no clients, nothing to cycle
+    if (!clients) return;
+
+    gClient *active = find_client(focused);
+
+    // 1. Move the currently focused window to the END of the list
+    // Only necessary if it's not already the last one
+    if (active && active->next) {
+        // Detach 'active' from its current position
+        if (clients == active) {
+            clients = active->next;
+        } else {
+            gClient *prev = clients;
+            while (prev->next != active) prev = prev->next;
+            prev->next = active->next;
+        }
+
+        // Re-attach 'active' at the very end
+        gClient *tail = clients;
+        while (tail->next) tail = tail->next;
+        tail->next = active;
+        active->next = NULL;
+    }
+
+    // 2. Find the NEW first window on the current workspace
+    gClient *c = clients;
+    while (c) {
+        if (c->workspace == currentWorkspace) {
+            // Found the next candidate!
+            XRaiseWindow(dpy, c->window);
+            switch_focus(c->window);
+
+            // Warp pointer to it if enabled
+            if (conf->warpPointer) {
+                XWindowAttributes a;
+                XGetWindowAttributes(dpy, c->window, &a);
+                XWarpPointer(dpy, None, c->window, 0, 0, 0, 0, a.width / 2, a.height / 2);
+            }
+            return;
+        }
+        c = c->next;
+    }
+}
+
+enum { LOGTYPE_WINDOW, LOGTYPE_KEY, LOGTYPE_ERR, LOGTYPE_WORKSPACE, LOGTYPE_RUNTIME, LOGTYPE_INIT, LOGTYPE_BEGIN
+    };
 
 void glog(const char *msg, u8 type) {
     char path[256];
     snprintf(path, sizeof(path), "%s/.glass/log", getenv("HOME"));
     FILE *f = fopen(path, "a");
     if (!f) return;
-
     switch (type) {
         case LOGTYPE_INIT:
             fprintf(f, "[init] ");
@@ -216,7 +261,7 @@ int main() {
     glog("Loading config...", LOGTYPE_INIT);
     conf = read_config();
     if (!conf) {
-        glog("Cannot read config.", LOGTYPE_ERR);
+        glog("Cannot read config! Defaults will be applied for the session.", LOGTYPE_ERR);
     }
 
     glog("Initializing display...", LOGTYPE_INIT);
@@ -336,8 +381,13 @@ int main() {
                 }
                 break;
             }
-            XSetWindowBorderWidth(dpy, w, 4);
+
+            add_client(w);
+
+            gClient *c = find_client(w);
+
             XSetWindowBorder(dpy, w, 0x000000);
+            XSetWindowBorderWidth(dpy, w, 4);
             XSelectInput(dpy, w, EnterWindowMask | FocusChangeMask | PropertyChangeMask | StructureNotifyMask);
 
             /*
@@ -355,12 +405,9 @@ int main() {
                 }
             }
 
-            add_client(w);
 
-            gClient *c = find_client(w);
             if (c && c->workspace == currentWorkspace) {
                 XMapWindow(dpy, c->window);
-                XRaiseWindow(dpy, c->window);
                 switch_focus(c->window);
 
                 if (XQueryPointer(dpy, root,
@@ -554,6 +601,9 @@ int main() {
                         free(c);
                     }
                     exit(0);
+                    break;
+                case (BCYCLE):
+                    cycle_windows();
                     break;
                 }
 
