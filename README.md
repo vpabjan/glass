@@ -92,6 +92,15 @@ polybar &
 
 # Launch compositor
 picom &
+
+# Launch notification daemon
+dunst &
+
+# Launch polkit agent
+lxqt-policykit-agent &
+
+# Set keyboard layout(s), important!
+setxkbmap -layout us,cz -variant ,qwerty -option grp:alt_shift_toggle
 ```
 
 Make sure the script is executable:
