@@ -21,6 +21,9 @@ typedef struct gClient {
     u32 x;
     u32 y;
     u8 workspace;
+    u8 fullscreen;
+    int old_x, old_y, old_w, old_h;
+
     struct gClient* next;
 } gClient;
 
@@ -53,6 +56,8 @@ gClient* clients = NULL;
 
 Window panel = None;
 int showPanel = 1;
+
+
 
 u8 currentWorkspace = 0;
 
@@ -162,16 +167,27 @@ void spawn(const char *cmd) {
     }
 }
 
+/*
+void toggle_fullscreen(Window w) {
+    gClient *c = find_client(w);
+    if (!c) return;
+
+    if (!c->fullscreen) {
+        XWindowAttributes attr;
+        XGetWindowAttributes(dpy, w, &attr);
+        c->old_x = attr.x; c->old_y = attr.y;
+        c->old_w = attr.width; c->old_h = attr.height;
+        XSetWindowBorder(dpy, Window, unsigned long)
+    }
+}
+*/
+
 void cycle_windows() {
-    // If no clients, nothing to cycle
     if (!clients) return;
 
     gClient *active = find_client(focused);
 
-    // 1. Move the currently focused window to the END of the list
-    // Only necessary if it's not already the last one
     if (active && active->next) {
-        // Detach 'active' from its current position
         if (clients == active) {
             clients = active->next;
         } else {
@@ -179,23 +195,19 @@ void cycle_windows() {
             while (prev->next != active) prev = prev->next;
             prev->next = active->next;
         }
-
-        // Re-attach 'active' at the very end
         gClient *tail = clients;
         while (tail->next) tail = tail->next;
         tail->next = active;
         active->next = NULL;
     }
 
-    // 2. Find the NEW first window on the current workspace
+
     gClient *c = clients;
     while (c) {
         if (c->workspace == currentWorkspace) {
-            // Found the next candidate!
             XRaiseWindow(dpy, c->window);
             switch_focus(c->window);
 
-            // Warp pointer to it if enabled
             if (conf->warpPointer) {
                 XWindowAttributes a;
                 XGetWindowAttributes(dpy, c->window, &a);
@@ -410,11 +422,17 @@ int main() {
                 XMapWindow(dpy, c->window);
                 switch_focus(c->window);
 
-                if (XQueryPointer(dpy, root,
-                              &root_ret, &child_ret,
-                              &rx, &ry, &wx, &wy,
-                              &mask)) XMoveWindow(dpy, c->window, rx - attrib.width / 2, ry - attrib.height / 2);
-                else if (conf->warpPointer) {
+                if (XQueryPointer(dpy, root, &root_ret, &child_ret, &rx, &ry, &wx, &wy, &mask)) {
+                    int pos_x = rx - attrib.width / 2;
+                    int pos_y = ry - attrib.height / 2;
+
+                    if (pos_x < 0) pos_x = 0;
+                    if (pos_y < 0) pos_y = 0;
+                    if (pos_x + attrib.width > res_x) pos_x = res_x - attrib.width;
+                    if (pos_y + attrib.height > res_y) pos_y = res_y - attrib.height;
+
+                    XMoveWindow(dpy, c->window, pos_x, pos_y);
+                } else if (conf->warpPointer) {
                     XWarpPointer(dpy, None, focused, 0,0,0,0,attrib.width/2, attrib.height/2);
                 }
 
@@ -529,6 +547,12 @@ int main() {
 
 
 
+            break;
+
+        case KeyRelease:
+            if (ev.xbutton.button == XK_Super_L) {
+
+            }
             break;
 
         case MotionNotify:
