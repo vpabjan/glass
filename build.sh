@@ -9,4 +9,5 @@ FLAGS="-std=gnu23 \
 -pie"
 
 gcc -o glass glass.c -lX11 $FLAGS
-#gcc -o glass-config.c -lncurses $FLAGS
+gcc -o glassbg glassbg.c -lImlib2 -lX11 $FLAGS
+#gcc -o glass-settings glass-settings.c -lncurses $FLAGS

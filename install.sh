@@ -18,6 +18,9 @@ chmod +x ~/.glass/rc.sh
 cp glass ~/.glass/glass
 chmod +x ~/.glass/glass
 
+cp glassbg ~/.glass/glassbg
+chmod +x ~/.glass/glassbg
+
 cp extra/xinitrc ~/.glass/xinitrc
 chmod +x ~/.glass/xinitrc
 cp extra/glass.conf ~/.glass/glass.conf

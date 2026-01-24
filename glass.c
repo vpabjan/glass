@@ -7,10 +7,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
-#include "ewmh.h"
-#include "config.c"
-#include "types.h"
-#include "env.c"
+#include "include/ewmh.h"
+#include "include/config.c"
+#include "include/types.h"
+#include "include/env.c"
 
 #define MOD Mod4Mask   // Super key
 
@@ -94,7 +94,7 @@ gClient *find_client(Window w) {
     return NULL;
 }
 
-void switch_focus(Window trg) {
+void switch_focus(Window trg)  {
     gClient *f = find_client(focused);
     gClient *c = find_client(trg);
 
@@ -440,7 +440,7 @@ int main() {
                 glog("New client, hello!", LOGTYPE_WINDOW);
                 g_ewmh_set_window_type(dpy, c->window, &ewmh);
                 g_ewmh_set_motif_hints(dpy, c->window, 1, &ewmh);
-                g_ewmh_set_gtk_frame_extents(dpy, c->window, 1, 1, 23, 1, &ewmh);
+                //g_ewmh_set_gtk_frame_extents(dpy, c->window, 1, 1, 23, 1, &ewmh);
 
             }
             break;
@@ -470,6 +470,8 @@ int main() {
             changes.border_width = ev.xconfigurerequest.border_width;
             changes.sibling = ev.xconfigurerequest.above;
             changes.stack_mode = ev.xconfigurerequest.detail;
+
+            //if (XSet)
 
             XConfigureWindow(dpy, ev.xconfigurerequest.window, ev.xconfigurerequest.value_mask, &changes);
             break;
