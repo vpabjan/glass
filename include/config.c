@@ -3,6 +3,7 @@
 #include <X11/Xlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 
 typedef enum gBindType {
@@ -39,9 +40,27 @@ gBind* gBindAdd(gBind* tail, KeySym bind, gBindType type, void* data) {
     return a;
 }
 
+typedef struct gDisplay {
+    u32 height;
+    u32 width;
+    u32 posx;
+    u32 posy;
+
+    struct gDisplay* next;
+} gDisplay;
+
 typedef struct gConfig {
     gBind* bindhead;
+    gDisplay* displayhead;
     u8 warpPointer;
+    u8 shrc;
+
+    char** need;
+    u16 needlen;
+    char** exec;
+    u16 execlen;
+
+
 } gConfig;
 
 gConfig* read_config() {
@@ -49,8 +68,11 @@ gConfig* read_config() {
     gConfig* conf = (gConfig*)malloc(sizeof(gConfig));
     if (!conf) return NULL;
 
+
+    // defaults
     conf->bindhead = NULL;
     conf->warpPointer = 1;
+    conf->shrc = 1;
 
     gBind* tail = NULL;
 
@@ -124,10 +146,8 @@ gConfig* read_config() {
                 type = BWS9;
             } else if (strcmp(action, "cycle") == 0){
                 type = BCYCLE;
-            } else if (strcmp(action, "fullsreen") == 0) {
+            } else if (strcmp(action, "fullscreen") == 0) {
                 type = BFULLSCREEN;
-            } else {
-                continue;
             }
             gBind* new_node = gBindAdd(tail, key, type, data);
 
@@ -144,7 +164,30 @@ gConfig* read_config() {
             } else if (strcmp(option, "yes") == 0) {
                 conf->warpPointer = 1;
             }
+        } else if (strcmp(arg, "do_rc") == 0) {
+            char* option = strtok(NULL, delim);
+            if (!option) continue;
+            if (strcmp(option, "no") == 0) {
+                conf->shrc = 0;
+            } else if (strcmp(option, "yes") == 0) {
+                conf->shrc = 1;
+            }
         }
+        /* else if (strcmp(arg, "exec") == 0) {
+
+            char* cmd = strtok(NULL, "\n");
+            if (cmd) {
+                gExec* e = (gExec*)malloc(sizeof(gExec));
+                if (!e) continue;
+                e->cmd = strdup(cmd);
+                if (!exec) {
+                } else {
+                    conf->exec->next = e;
+            }
+
+        }
+        */
+
     }
     fclose(f);
     return conf;
