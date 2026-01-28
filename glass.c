@@ -118,6 +118,12 @@ void switch_focus(Window trg)  {
 void switch_workspace(u8 ws) {
     if (ws == currentWorkspace) return;
     Window next_focus = None;
+    gClient* c = find_client(focused);
+
+    if (moving && focused) {
+        if (c) c->workspace = ws;
+    }
+
 
     for (gClient *c = clients; c; c = c->next) {
         XWindowAttributes attributes;
@@ -126,7 +132,7 @@ void switch_workspace(u8 ws) {
             if (h) {
                 if (!attributes.map_state) {
                     XMapWindow(dpy, c->window);
-                    next_focus = c->window;
+                    if (next_focus == None) next_focus = c->window;
                 }
             }
         } else {
@@ -138,8 +144,15 @@ void switch_workspace(u8 ws) {
 
         }
     }
+
+
+
     currentWorkspace = ws;
     g_ewmh_set_current_desktop(dpy, root, &ewmh, ws);
+
+    if (moving && c) {
+        next_focus = focused;
+    }
 
     if (next_focus != None) {
         //XRaiseWindow(dpy, next_focus);
@@ -316,7 +329,7 @@ int main() {
     g_ewmh_set_wm_name(dpy, wmcheck, &ewmh, "Glass"); // this does something, but it doesnt do the other thing too i guess
 
     //not in ewmh?!
-    XChangeProperty(dpy, root, XInternAtom(dpy, "_NET_WM_NAME", 0), XInternAtom(dpy, "UTF8_STRING", 0), 32, PropModeReplace, "Glass", 7);
+    XChangeProperty(dpy, root, XInternAtom(dpy, "_NET_WM_NAME", 0), XInternAtom(dpy, "UTF8_STRING", 0), 32, PropModeReplace, (unsigned char*)"Glass", 7);
 
 
     g_ewmh_set_supported(dpy, root, &ewmh);
@@ -660,10 +673,15 @@ int main() {
 
             if (bind->type >= 0 && bind->type <= 8) {
                 if (!(ev.xkey.state & ShiftMask)) {
+                    /*
                     if (moving && focused) {
                         gClient* c = find_client(focused);
-                        if (c) c->workspace = bind->type;
+                        if (c)  {
+                            XUnmapWindow(dpy, c->window);
+                            c->workspace = bind->type;
+                        }
                     }
+                    */
                     switch_workspace(bind->type);
                 } else {
                     if (focused && focused != root) {
