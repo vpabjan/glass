@@ -120,13 +120,22 @@ void switch_workspace(u8 ws) {
     Window next_focus = None;
 
     for (gClient *c = clients; c; c = c->next) {
+        XWindowAttributes attributes;
+        u8 h = XGetWindowAttributes(dpy, c->window, &attributes);
         if (c->workspace == ws) {
-            XMapWindow(dpy, c->window);
-            if (next_focus == None) {
-                next_focus = c->window;
+            if (h) {
+                if (!attributes.map_state) {
+                    XMapWindow(dpy, c->window);
+                    next_focus = c->window;
+                }
             }
         } else {
-            XUnmapWindow(dpy, c->window);
+            if (h) {
+                if (attributes.map_state) XUnmapWindow(dpy, c->window);
+            } else {
+                 //XUnmapWindow(dpy, c->window); //unmap anyway
+            }
+
         }
     }
     currentWorkspace = ws;
@@ -138,9 +147,7 @@ void switch_workspace(u8 ws) {
 
         if (conf->warpPointer) {
             XWindowAttributes a;
-            if (XGetWindowAttributes(dpy, next_focus, &a)) {
-                XWarpPointer(dpy, None, next_focus, 0, 0, 0, 0, a.width/2, a.height/2);
-            }
+            if (XGetWindowAttributes(dpy, next_focus, &a) )XWarpPointer(dpy, None, next_focus, 0, 0, 0, 0, a.width / 2, a.height / 2);
         }
     } else {
         XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
@@ -210,8 +217,7 @@ void cycle_windows() {
 
             if (conf->warpPointer) {
                 XWindowAttributes a;
-                XGetWindowAttributes(dpy, c->window, &a);
-                XWarpPointer(dpy, None, c->window, 0, 0, 0, 0, a.width / 2, a.height / 2);
+                if (XGetWindowAttributes(dpy, c->window, &a)) XWarpPointer(dpy, None, c->window, 0, 0, 0, 0, a.width / 2, a.height / 2);
             }
             return;
         }
@@ -294,6 +300,7 @@ int main() {
 
     XWindowAttributes rootattr;
     XGetWindowAttributes(dpy, root, &rootattr);
+
     res_x = rootattr.width;
     res_y = rootattr.height;
 
@@ -306,10 +313,18 @@ int main() {
     wmcheck = XCreateSimpleWindow(dpy, root, 0, 0, 1, 1, 0, 0, 0);
 
     g_ewmh_set_check(dpy, root, wmcheck, &ewmh);
-    g_ewmh_set_wm_name(dpy, wmcheck, &ewmh, "Glass");
+    g_ewmh_set_wm_name(dpy, wmcheck, &ewmh, "Glass"); // this does something, but it doesnt do the other thing too i guess
+
+    //not in ewmh?!
+    XChangeProperty(dpy, root, XInternAtom(dpy, "_NET_WM_NAME", 0), XInternAtom(dpy, "UTF8_STRING", 0), 32, PropModeReplace, "Glass", 7);
+
+
     g_ewmh_set_supported(dpy, root, &ewmh);
     g_ewmh_set_desktop_count(dpy, root, &ewmh, 9);
     g_ewmh_set_current_desktop(dpy, root, &ewmh, currentWorkspace);
+
+
+
 
     glog("Grabbing keys and buttons...", LOGTYPE_INIT);
 
@@ -347,8 +362,10 @@ int main() {
                   &rx, &ry, &wx, &wy,
                   &mask);
 
-    glog("Running rc.sh...", LOGTYPE_INIT);
-    spawn("bash ~/.glass/rc.sh");
+    if (conf->shrc) {
+        glog("Running rc.sh...", LOGTYPE_INIT);
+        spawn("bash ~/.glass/rc.sh");
+    }
 
     glog("Done!", LOGTYPE_INIT);
 
@@ -381,7 +398,7 @@ int main() {
 
             if (find_client(w)) break;
 
-            Window h = ev.xmaprequest.parent;
+            Window par = ev.xmaprequest.parent;
 
 
             XWindowAttributes attrib;
@@ -408,6 +425,9 @@ int main() {
             }
              */
 
+            gClient* rparent = find_client(par);
+            if (rparent) c->workspace = rparent->workspace;
+
             Window trans;
             if (XGetTransientForHint(dpy, w, &trans)) {
                 gClient* parent = find_client(trans);
@@ -432,7 +452,8 @@ int main() {
                     if (pos_y + attrib.height > res_y) pos_y = res_y - attrib.height;
 
                     XMoveWindow(dpy, c->window, pos_x, pos_y);
-                } else if (conf->warpPointer) {
+                } else
+                if (conf->warpPointer && c->workspace == currentWorkspace) {
                     XWarpPointer(dpy, None, focused, 0,0,0,0,attrib.width/2, attrib.height/2);
                 }
 
@@ -478,23 +499,26 @@ int main() {
 
         case ButtonPress:
             if (ev.xbutton.state & MOD && (ev.xbutton.button == Button4 || ev.xbutton.button == Button5)) {
-
                 gClient* temp = find_client(focused);
-
+                u8 ws = 0;
 
                 if (ev.xbutton.button == Button4) {
                     if (currentWorkspace < 8) {
-                        switch_workspace(currentWorkspace + 1);
+                        ws = currentWorkspace + 1;
                     } else {
-                        switch_workspace(0);
+                        ws = 0;
                     }
-                } else {
+                } else if (ev.xbutton.button == Button5){
                     if (currentWorkspace > 0) {
-                        switch_workspace(currentWorkspace - 1);
+                        ws = currentWorkspace - 1;
                     } else {
-                        switch_workspace(8);
+                        ws = 8;
                     }
                 }
+                if (moving && temp) {
+                    temp->workspace = ws;
+                }
+                switch_workspace(ws);
                 break;
             }
 
@@ -598,6 +622,7 @@ int main() {
             switch(bind->type) {
                 case (BQUIT):
                     gClient* c = NULL;
+                    if (!focused || focused == root) break;
                     c = find_client(focused);
                     if (c) {
                         XKillClient(dpy, focused);
@@ -635,6 +660,10 @@ int main() {
 
             if (bind->type >= 0 && bind->type <= 8) {
                 if (!(ev.xkey.state & ShiftMask)) {
+                    if (moving && focused) {
+                        gClient* c = find_client(focused);
+                        if (c) c->workspace = bind->type;
+                    }
                     switch_workspace(bind->type);
                 } else {
                     if (focused && focused != root) {
