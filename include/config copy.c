@@ -69,26 +69,11 @@ typedef struct gConfig {
 
 } gConfig;
 
-static inline gDisplay* new_empty_display() {
-    gDisplay* p = calloc(1, sizeof(gDisplay));
-    if (!p) return p;
-    p->width = 1920; p->height = 1080;
-    p->posx = 0; p->posy = 0;
-    p->gapleft = 0; p->gapright = 0;
-    p->next = NULL;
-    return p;
-}
-
 gConfig* read_config() {
     char path[256];
     gConfig* conf = (gConfig*)calloc(1, sizeof(gConfig));
     if (!conf) return NULL;
 
-    snprintf(path, sizeof(path), "%s/.glass/glass.conf", getenv("HOME"));
-    FILE *f = fopen(path, "r");
-    if (!f) {
-        return conf;
-    }
 
     // defaults
     conf->displayhead = NULL;
@@ -98,19 +83,25 @@ gConfig* read_config() {
     conf->shrc = 1;
 
     gDisplay* tempdisp = NULL;
-    gDisplay* selected = NULL;
 
     gBind* tail = NULL;
 
-
+    snprintf(path, sizeof(path), "%s/.glass/glass.conf", getenv("HOME"));
+    FILE *f = fopen(path, "r");
+    if (!f) {
+        return conf;
+    }
 
     char line[256];
 
-    const char* delim = " \t\r\n";
+    const char* delim = " \n\t";
 
     while (fgets(line, sizeof(line), f)) {
+
+        if (line[0] == '#') continue;
+
         char* arg = strtok(line, delim);
-        if (!arg || arg[0] == '#') continue;
+        if (!arg) continue;
 
 
         if (strcmp(arg, "suprbind") == 0) {
@@ -202,28 +193,79 @@ gConfig* read_config() {
         } else if (strcmp(arg, "display") == 0) {
             char* option = strtok(NULL, delim);
             if (!option) continue;
-            char* val = strtok(NULL, delim);
-            if (!strcmp(option, "add")) {
-                if (!conf->displayhead) {
-                    conf->displayhead = new_empty_display();
-                    tempdisp = conf->displayhead;
+            if (strcmp(option, "add") == 0) {
+                char* name = strtok(NULL, delim);
+                if (!name) continue;
+                gDisplay* disp = (gDisplay*)malloc(sizeof(gDisplay));
+                if (!disp) continue;
+                disp->name = strdup(name);
+                if (!tempdisp) {
+                    conf->displayhead = disp;
+                    tempdisp = disp;
                 } else {
-                    tempdisp->next = new_empty_display();
-                    tempdisp = tempdisp->next;
+                    tempdisp->next = disp;
+                    tempdisp = disp;
                 }
-                selected = tempdisp;
-                if (val) selected->name = strdup(val);
-            } else if (val && selected) {
-                if (!strcmp(option, "x")) selected->posx = atoi(val);
-                else if (!strcmp(option, "y")) selected->posy = atoi(val);
-                else if (!strcmp(option, "w")) selected->width = atoi(val);
-                else if (!strcmp(option, "h")) selected->height = atoi(val);
-                else if (!strcmp(option, "top")) selected->gaptop = atoi(val);
-                else if (!strcmp(option, "bottom")) selected->gapbottom = atoi(val);
-                else if (!strcmp(option, "right")) selected->gapright = atoi(val);
-                else if (!strcmp(option, "left")) selected->gapleft = atoi(val);
+                conf->displays++;
+                continue;
+            }
+            for (gDisplay* last = conf->displayhead; last; last = last->next) {
+                if (strcmp(last->name, option) != 0) continue;
+
+                char* setting = strtok(NULL, delim);
+
+                if (!setting) continue;
+
+                if (strcmp(setting, "w") == 0) {
+                    char* nextsetting = strtok(NULL, delim);
+                    if (!nextsetting) continue;
+                    last->width = atoi(nextsetting);
+                } else if (strcmp(setting, "h") == 0) {
+                    char* nextsetting = strtok(NULL, delim);
+                    if (!nextsetting) continue;
+                    last->height = atoi(nextsetting);
+                } else if (strcmp(setting, "x") == 0) {
+                    char* nextsetting = strtok(NULL, delim);
+                    if (!nextsetting) continue;
+                    last->posx = atoi(nextsetting);
+                } else if (strcmp(setting, "y") == 0) {
+                    char* nextsetting = strtok(NULL, delim);
+                    if (!nextsetting) continue;
+                    last->posy = atoi(nextsetting);
+                } else if (strcmp(setting, "top") == 0) {
+                    char* nextsetting = strtok(NULL, delim);
+                    if (!nextsetting) continue;
+                    last->gaptop = atoi(nextsetting);
+                } else if (strcmp(setting, "bottom") == 0) {
+                    char* nextsetting = strtok(NULL, delim);
+                    if (!nextsetting) continue;
+                    last->gapbottom = atoi(nextsetting);
+                } else if (strcmp(setting, "right") == 0) {
+                    char* nextsetting = strtok(NULL, delim);
+                    if (!nextsetting) continue;
+                    last->gapright = atoi(nextsetting);
+                } else if (strcmp(setting, "left") == 0) {
+                    char* nextsetting = strtok(NULL, delim);
+                    if (!nextsetting) continue;
+                    last->gapleft = atoi(nextsetting);
+                }
             }
         }
+        /* else if (strcmp(arg, "exec") == 0) {
+
+            char* cmd = strtok(NULL, "\n");
+            if (cmd) {
+                gExec* e = (gExec*)malloc(sizeof(gExec));
+                if (!e) continue;
+                e->cmd = strdup(cmd);
+                if (!exec) {
+                } else {
+                    conf->exec->next = e;
+            }
+
+        }
+        */
+
     }
     fclose(f);
     return conf;

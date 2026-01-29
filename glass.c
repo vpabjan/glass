@@ -11,6 +11,7 @@
 #include "include/config.c"
 #include "include/types.h"
 #include "include/env.c"
+#include "include/log.c"
 
 #define MOD Mod4Mask   // Super key
 
@@ -238,40 +239,64 @@ void cycle_windows() {
     }
 }
 
-enum { LOGTYPE_WINDOW, LOGTYPE_KEY, LOGTYPE_ERR, LOGTYPE_WORKSPACE, LOGTYPE_RUNTIME, LOGTYPE_INIT, LOGTYPE_BEGIN
-    };
+void toggle_fullscreen(Window w) {
+    gClient *c = find_client(w);
+    if (!c) return;
 
-void glog(const char *msg, u8 type) {
-    char path[256];
-    snprintf(path, sizeof(path), "%s/.glass/log", getenv("HOME"));
-    FILE *f = fopen(path, "a");
-    if (!f) return;
-    switch (type) {
-        case LOGTYPE_INIT:
-            fprintf(f, "[init] ");
-            break;
-        case LOGTYPE_WINDOW:
-            fprintf(f, "[window] ");
-            break;
-        case LOGTYPE_KEY:
-            fprintf(f, "[key] ");
-            break;
-        case LOGTYPE_ERR:
-            fprintf(f, "[error] ");
-            break;
-        case LOGTYPE_WORKSPACE:
-            fprintf(f, "[workspace] ");
-            break;
-        case LOGTYPE_RUNTIME:
-            fprintf(f, "[runtime] ");
-            break;
-        case LOGTYPE_BEGIN:
-            fprintf(f, "---------------------------------------------------------");
-            break;
+    if (!conf->displayhead) {
+        glog("No displays configured for fullscreen!", LOGTYPE_ERR);
+        return;
     }
 
-    fprintf(f, "%s\n", msg);
-    fclose(f);
+    if (c->fullscreen) {
+        XSetWindowBorderWidth(dpy, w, 4);
+        XMoveResizeWindow(dpy, w, c->old_x, c->old_y, c->old_w, c->old_h);
+        c->x = c->old_x; c->y = c->old_y; c->width = c->old_w; c->height = c->old_h;
+        c->fullscreen = 0;
+
+    } else {
+        XWindowAttributes attr;
+        if (XGetWindowAttributes(dpy, w, &attr)) {
+            c->old_x = attr.x;
+            c->old_y = attr.y;
+            c->old_w = attr.width;
+            c->old_h = attr.height;
+            int cx, cy;
+
+            if (XQueryPointer(dpy, root, &root_ret, &child_ret, &rx, &ry, &wx, &wy, &mask)) {
+                cx = rx; cy=ry;
+            } else {
+                cx = attr.x + (attr.width / 2);
+                cy = attr.y + (attr.height / 2);
+            }
+
+            gDisplay *target_disp = conf->displayhead;
+
+            for (gDisplay *d = conf->displayhead; d; d = d->next) {
+                if (cx >= d->posx && cx < d->posx + d->width &&
+                    cy >= d->posy && cy < d->posy + d->height) {
+                    target_disp = d;
+                    break;
+                }
+            }
+
+            int nx = target_disp->posx + target_disp->gapleft;
+
+            int ny = target_disp->posy + target_disp->gaptop;
+
+            unsigned int nw = target_disp->width - target_disp->gapleft - target_disp->gapright;
+
+            unsigned int nh = target_disp->height - target_disp->gaptop - target_disp->gapbottom;
+
+            XSetWindowBorderWidth(dpy, w, 0);
+            XMoveResizeWindow(dpy, w, nx, ny, nw, nh);
+            XMapRaised(dpy, w);
+            XSync(dpy, False);
+            XRaiseWindow(dpy, w);
+
+            c->fullscreen = 1;
+        }
+    }
 }
 
 int x_error_handler(Display* d, XErrorEvent*  e) {
@@ -380,6 +405,17 @@ int main() {
         spawn("bash ~/.glass/rc.sh");
     }
 
+    if (conf->displays > 0) {
+            gDisplay* h = conf->displayhead;
+            while (h) {
+                char buf[128];
+                snprintf(buf, sizeof(buf), "Display %s: %dx%d at %d,%d",
+                         h->name, h->width, h->height, h->posx, h->posy);
+                glog(buf, LOGTYPE_INIT);
+                h = h->next;
+            }
+        }
+
     glog("Done!", LOGTYPE_INIT);
 
 
@@ -427,6 +463,9 @@ int main() {
             add_client(w);
 
             gClient *c = find_client(w);
+
+            c->fullscreen = 0;
+
 
             XSetWindowBorder(dpy, w, 0x000000);
             XSetWindowBorderWidth(dpy, w, 4);
@@ -655,6 +694,12 @@ int main() {
                         XMapWindow(dpy, panel);
                     }
                     showPanel = !showPanel;
+                    break;
+                }
+                case (BFULLSCREEN): {
+                    if (focused && focused != root) {
+                        toggle_fullscreen(focused);
+                    }
                     break;
                 }
                 case (BEXIT):
