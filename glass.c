@@ -119,10 +119,11 @@ void switch_focus(Window trg)  {
 void switch_workspace(u8 ws) {
     if (ws == currentWorkspace) return;
     Window next_focus = None;
+    Window last = None;
     gClient* c = find_client(focused);
-
-    if (moving && focused) {
-        if (c) c->workspace = ws;
+    if (moving && c) {
+        c->workspace = ws;
+        next_focus = focused;
     }
 
 
@@ -134,32 +135,29 @@ void switch_workspace(u8 ws) {
                 if (!attributes.map_state) {
                     XMapWindow(dpy, c->window);
                     if (next_focus == None) next_focus = c->window;
+                    last = c->window;
                 }
             }
         } else {
             if (h) {
                 if (attributes.map_state) XUnmapWindow(dpy, c->window);
             } else {
-                 //XUnmapWindow(dpy, c->window); //unmap anyway
+                 XUnmapWindow(dpy, c->window); //unmap anyway
             }
 
         }
     }
 
 
-
     currentWorkspace = ws;
     g_ewmh_set_current_desktop(dpy, root, &ewmh, ws);
 
-    if (moving && c) {
-        next_focus = focused;
-    }
 
     if (next_focus != None) {
         //XRaiseWindow(dpy, next_focus);
         switch_focus(next_focus);
 
-        if (conf->warpPointer) {
+        if (conf->warpPointer && !moving) {
             XWindowAttributes a;
             if (XGetWindowAttributes(dpy, next_focus, &a) )XWarpPointer(dpy, None, next_focus, 0, 0, 0, 0, a.width / 2, a.height / 2);
         }
@@ -425,6 +423,7 @@ int main() {
         switch (ev.type) {
 
         case LeaveNotify: {
+
             break;
         }
 
