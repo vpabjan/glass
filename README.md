@@ -30,7 +30,7 @@ Glass favors clarity, explicit control, and minimal abstraction over convenience
 
 ## Installation
 
-This section has been removed as per the existance of the [Glass wiki]{https://github.com/vpabjan/glass/wiki}. Refer to the wiki for installation and configuration steps. (Keep in mind everything WIP)
+This section has been removed as per the existance of the [Glass wiki](https://github.com/vpabjan/glass/wiki). Refer to the wiki for installation and configuration steps. (Keep in mind everything WIP)
 
 ## Contributing
 
