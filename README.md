@@ -43,39 +43,6 @@ Then start it using start-glass on a TTY. Glass is **not** installed system-wide
 
 ---
 
-## Configuration
-
-### Keybinds
-
-Keybinds are defined in `~/.glass/glass.conf`. To change them, use the `suprbind` command, which grabs keys using the **Super** modifier.
-
-**Keybinds:**
-
-| Action           | Symbol          | Default keybind |
-| ---------------- | --------------- | --------------- |
-| Spawn            | >>              | D, Return       |
-| Close window     | <<              | Q               |
-| Exit glass       | <<<             | E               |
-| Cycle windows    | cycle           | Tab             |
-| Switch workspace | 1, 2, 3...      | 1, 2, 3...      |
-| Toggle panel     | panel           | 0               |
-
-*On default `rofi` is bound to the `d` key and `alacritty` to `Return`.*
-
-*To move the focused window to a workspace use the shift key alongside the switch workspace bind.*
-
-### Mouse behaviour.
-
-Mouse buttons are not configurable by design.
-
-With the Super key held:
-
-- LMB — move window
-- RMB — resize window
-- Scroll — switch workspace
-
----
-
 ### Compositors, Bars, and Wallpapers
 
 Glass runs a startup script `~/.glass/rc.sh` after the X display is initialized.\
