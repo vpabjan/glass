@@ -30,56 +30,7 @@ Glass favors clarity, explicit control, and minimal abstraction over convenience
 
 ## Installation
 
-Clone the repository:
-
-```bash
-git clone https://github.com/vpabjan/glass.git
-cd glass
-chmod +x install.sh
-./install.sh
-```
-
-Then start it using start-glass on a TTY. Glass is **not** installed system-wide, it lives in ~./.glass.
-
----
-
-### Compositors, Bars, and Wallpapers
-
-Glass runs a startup script `~/.glass/rc.sh` after the X display is initialized.\
-You can use it to launch compositors, panels, or set wallpapers.
-
-**Example ****rc.sh****:**
-
-```bash
-#!/bin/bash
-# Set wallpaper
-feh --bg-scale ~/path/to/wallpaper.jpg &
-
-# Launch panel/bar
-polybar &
-
-# Launch compositor
-picom &
-
-# Launch notification daemon
-dunst &
-
-# Launch polkit agent
-lxqt-policykit-agent &
-
-# Set keyboard layout(s), important!
-setxkbmap -layout us,cz -variant ,qwerty -option grp:alt_shift_toggle
-```
-
-Make sure the script is executable:
-
-```bash
-chmod +x ~/.glass/rc.sh
-```
-
-*It will already be executable if Glass was installed using `install.sh.`*
-
----
+This section has been removed as per the existance of the [Glass wiki]{https://github.com/vpabjan/glass/wiki}. Refer to the wiki for installation and configuration steps. (Keep in mind everything WIP)
 
 ## Contributing
 
