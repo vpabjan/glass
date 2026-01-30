@@ -28,7 +28,7 @@ static inline void glog(const char *msg, u8 type) {
             fprintf(f, "[error] ");
             break;
         case LOGTYPE_WORKSPACE:
-            fprintf(f, "[workspace] ");
+            fprintf(f, "[viewport] ");
             break;
         case LOGTYPE_RUNTIME:
             fprintf(f, "[runtime] ");

@@ -21,16 +21,16 @@ typedef struct gClient {
     u32 width;
     u32 x;
     u32 y;
-    u8 workspace;
+    u8 viewport;
     u8 fullscreen;
     int old_x, old_y, old_w, old_h;
 
     struct gClient* next;
 } gClient;
 
-typedef struct gWorkspace {
+typedef struct gViewport {
     u8 tile;
-} gWorkspace;
+} gViewport;
 
 int rx, ry, wx, wy;
 unsigned int mask;
@@ -44,6 +44,8 @@ Window root;
 Window focused;
 Window grabbed;
 Window target;
+
+Window viewportLastFocused[9] = { None };
 
 u32 res_x;
 u32 res_y;
@@ -60,7 +62,7 @@ int showPanel = 1;
 
 
 
-u8 currentWorkspace = 0;
+u8 currentViewport = 0;
 
 gEWMH ewmh;
 Window wmcheck;
@@ -70,7 +72,7 @@ Cursor cursor;
 void add_client(Window w) {
     gClient *c = calloc(1, sizeof(gClient));
     c->window = w;
-    c->workspace = currentWorkspace;
+    c->viewport = currentViewport;
     c->next = clients;
     clients = c;
 }
@@ -118,21 +120,23 @@ void switch_focus(Window trg)  {
 
 }
 
-void switch_workspace(u8 ws) {
-    if (ws == currentWorkspace) return;
+void switch_viewport(u8 ws) {
+    if (ws == currentViewport) return;
     Window next_focus = None;
     Window last = None;
     gClient* c = find_client(focused);
     if (moving && c) {
-        c->workspace = ws;
+        c->viewport = ws;
         next_focus = focused;
+    } else if (c) {
+        viewportLastFocused[currentViewport] = focused;
     }
 
 
     for (gClient *c = clients; c; c = c->next) {
         XWindowAttributes attributes;
         u8 h = XGetWindowAttributes(dpy, c->window, &attributes);
-        if (c->workspace == ws) {
+        if (c->viewport == ws) {
             if (h) {
                 if (!attributes.map_state) {
                     XMapWindow(dpy, c->window);
@@ -150,8 +154,15 @@ void switch_workspace(u8 ws) {
         }
     }
 
+    if (viewportLastFocused[ws] != None) {
+        gClient* h = find_client(viewportLastFocused[ws]);
+        if (h) {
+            next_focus = viewportLastFocused[ws];
+        }
+    }
 
-    currentWorkspace = ws;
+
+    currentViewport = ws;
     g_ewmh_set_current_desktop(dpy, root, &ewmh, ws);
 
 
@@ -226,7 +237,7 @@ void cycle_windows() {
 
     gClient *c = clients;
     while (c) {
-        if (c->workspace == currentWorkspace) {
+        if (c->viewport == currentViewport) {
             XRaiseWindow(dpy, c->window);
             switch_focus(c->window);
 
@@ -360,7 +371,7 @@ int main() {
 
     g_ewmh_set_supported(dpy, root, &ewmh);
     g_ewmh_set_desktop_count(dpy, root, &ewmh, 9);
-    g_ewmh_set_current_desktop(dpy, root, &ewmh, currentWorkspace);
+    g_ewmh_set_current_desktop(dpy, root, &ewmh, currentViewport);
 
 
 
@@ -520,19 +531,19 @@ int main() {
              */
 
             gClient* rparent = find_client(par);
-            if (rparent) c->workspace = rparent->workspace;
+            if (rparent) c->viewport = rparent->viewport;
 
             Window trans;
             if (XGetTransientForHint(dpy, w, &trans)) {
                 gClient* parent = find_client(trans);
                 gClient* current = find_client(w);
                 if (parent && current) {
-                    current->workspace = parent->workspace;
+                    current->viewport = parent->viewport;
                 }
             }
 
 
-            if (c && c->workspace == currentWorkspace) {
+            if (c && c->viewport == currentViewport) {
                 XMapWindow(dpy, c->window);
                 switch_focus(c->window);
 
@@ -547,7 +558,7 @@ int main() {
 
                     XMoveWindow(dpy, c->window, pos_x, pos_y);
                 } else
-                if (conf->warpPointer && c->workspace == currentWorkspace) {
+                if (conf->warpPointer && c->viewport == currentViewport) {
                     XWarpPointer(dpy, None, focused, 0,0,0,0,attrib.width/2, attrib.height/2);
                 }
 
@@ -597,22 +608,22 @@ int main() {
                 u8 ws = 0;
 
                 if (ev.xbutton.button == Button4) {
-                    if (currentWorkspace < 8) {
-                        ws = currentWorkspace + 1;
+                    if (currentViewport < 8) {
+                        ws = currentViewport + 1;
                     } else {
                         ws = 0;
                     }
                 } else if (ev.xbutton.button == Button5){
-                    if (currentWorkspace > 0) {
-                        ws = currentWorkspace - 1;
+                    if (currentViewport > 0) {
+                        ws = currentViewport - 1;
                     } else {
                         ws = 8;
                     }
                 }
                 if (moving && temp) {
-                    temp->workspace = ws;
+                    temp->viewport = ws;
                 }
-                switch_workspace(ws);
+                switch_viewport(ws);
                 break;
             }
 
@@ -765,16 +776,16 @@ int main() {
                         gClient* c = find_client(focused);
                         if (c)  {
                             XUnmapWindow(dpy, c->window);
-                            c->workspace = bind->type;
+                            c->viewport = bind->type;
                         }
                     }
                     */
-                    switch_workspace(bind->type);
+                    switch_viewport(bind->type);
                 } else {
                     if (focused && focused != root) {
                         gClient* hi = find_client(focused);
-                        if (hi && (currentWorkspace != bind->type)) {
-                            hi->workspace = bind->type;
+                        if (hi && (currentViewport != bind->type)) {
+                            hi->viewport = bind->type;
                             XUnmapWindow(dpy, focused);
                         }
                     }

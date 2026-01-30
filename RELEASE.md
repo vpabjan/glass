@@ -6,7 +6,7 @@
 + sloppy focus
 + shell build & install scripts
 + basic window management
-+ workspaces
++ viewports
 + ewmh
 + window cycling
 + many more...
@@ -16,7 +16,7 @@
 ## Features
 + added displays
 + added fullscreen
-+ stability improvements on workspace switching
-+ drag window across workspaces
++ stability improvements on viewport switching
++ drag window across viewports
 + disable rc.sh thru config
 ---

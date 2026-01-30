@@ -7,7 +7,7 @@ It is designed to be simple, fast, and highly configurable.
 
 ## Features
 
-- Core window management: move, resize, close, and move windows between workspaces
+- Core window management: move, resize, close, and move windows between viewports
 - Lightweight and minimal (~2.7 MB RAM usage)
 - Compatible with status bars such as **polybar** (recommended) or **xfce4-panel**
 - Compatible with compositors such as **picom** (recommended)
@@ -18,7 +18,7 @@ It is designed to be simple, fast, and highly configurable.
 
 Glass aims to be stable, efficient, simple, performant, and highly configurable.
 
-It is explicitly workspace-focused. As a result, window minimization is not supported and will not be added by design. Likewise, window decorations are intentionally omitted. A user skilled enough to use Glass is expected to distinguish their windows and remember the small, essential set of keybindings.
+It is explicitly viewport-focused. As a result, window minimization is not supported and will not be added by design. Likewise, window decorations are intentionally omitted. A user skilled enough to use Glass is expected to distinguish their windows and remember the small, essential set of keybindings.
 
 Glass favors clarity, explicit control, and minimal abstraction over convenience features.
 
@@ -37,7 +37,7 @@ This section has been removed as per the existance of the [Glass wiki](https://g
 Glass is intentionally minimal.
 If you want to contribute, consider:
 - Adding or refining keybindings
-- Improving workspace or window handling
+- Improving viewport or window handling
 - Improving documentation or clarity
 
 Keep changes simple, explicit, and aligned with the project’s philosophy.
