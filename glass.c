@@ -158,6 +158,7 @@ void switch_workspace(u8 ws) {
     if (next_focus != None) {
         //XRaiseWindow(dpy, next_focus);
         switch_focus(next_focus);
+        XRaiseWindow(dpy, focused);
 
         if (conf->warpPointer && !moving) {
             XWindowAttributes a;
@@ -452,12 +453,34 @@ int main() {
             if (ev.xcrossing.window == root) break;
             if (ev.xcrossing.mode != NotifyNormal || ev.xcrossing.detail == NotifyInferior) break;
 
+            gClient* f = NULL;
+            if (focused && focused != root && focused != None) f = find_client(focused);
+
             gClient* c = find_client(ev.xcrossing.window);
             if (!c) break;
 
             if (moving || resizing) break;
 
-            switch_focus(c->window);
+            if (f != NULL) {
+                XWindowAttributes attr_f;
+                XWindowAttributes attr_c;
+                if (XGetWindowAttributes(dpy, focused, &attr_f) && XGetWindowAttributes(dpy, ev.xcrossing.window, &attr_c)) {
+                    if (XQueryPointer(dpy, root, &root_ret, &child_ret, &rx, &ry, &wx, &wy, &mask)) {
+                        if (rx >= attr_f.x && rx < attr_f.x + attr_f.width
+                            && ry >= attr_f.y && ry < attr_f.y + attr_f.height) {
+                                break;
+                        } else {
+                            XRaiseWindow(dpy, c->window);
+                            switch_focus(c->window);
+                        }
+                    }
+                }
+            } else {
+                XRaiseWindow(dpy, c->window);
+                switch_focus(c->window);
+            }
+
+
             break;
         }
 
