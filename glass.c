@@ -398,9 +398,14 @@ int main() {
                   &rx, &ry, &wx, &wy,
                   &mask);
 
+    spawn("mkdir -p ~/.glass");
+    spawn("touch ~/.glass/rc.sh");
+    spawn("chmod +x ~/.glass/rc.sh");
+    spawn("touch ~/.glass/glass.conf");
+
     if (conf->shrc) {
         glog("Running rc.sh...", LOGTYPE_INIT);
-        spawn("bash ~/.glass/rc.sh");
+        spawn("~/.glass/rc.sh");
     }
 
     if (conf->displays > 0) {
@@ -423,7 +428,19 @@ int main() {
         switch (ev.type) {
 
         case LeaveNotify: {
+            XWindowAttributes a;
 
+            Window w = ev.xcrossing.window;
+
+            if (w==root) break;
+            if (ev.xcrossing.mode != NotifyNormal || ev.xcrossing.detail == NotifyInferior) break;
+            if (w==focused) break;
+
+
+            if (XGetWindowAttributes(dpy, w, &a)) {
+                XSetWindowBorderWidth(dpy, w, 4);
+                XSetWindowBorder(dpy, w, 0x000000);
+            }
             break;
         }
 

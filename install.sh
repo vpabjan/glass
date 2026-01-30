@@ -1,26 +1,59 @@
-#!/bin/bash
+#!/bin/sh
+set -e
 
-echo "Building glass"
+# decide prefix
+if [ "$(id -u)" -eq 0 ]; then
+    PREFIX=${PREFIX:-/usr/local}
+else
+    PREFIX=${PREFIX:-$HOME/.local}
+fi
 
-chmod +x build.sh
-./build.sh
+BIN="$PREFIX/bin"
+LIB="$PREFIX/lib/glass"
+SHARE="$PREFIX/share/glass"
+ETC="$PREFIX/etc/glass"
+XSESSIONS="$PREFIX/share/xsessions"
 
-# sudo cp extra/glass.desktop /usr/share/xsessions/glass.desktop
+echo "[*] Installing glass"
+echo "    PREFIX=$PREFIX"
 
-echo "Setting up .glass"
+# sanity
+[ -x ./glass ] || {
+    echo "glass binary not found (run ./build.sh first)"
+    exit 1
+}
 
-mkdir -p ~/.glass
+# dirs
+install -d \
+    "$BIN" \
+    "$LIB" \
+    "$SHARE" \
+    "$ETC" \
+    "$XSESSIONS"
 
-touch ~/.glass/log
-touch ~/.glass/rc.sh
-chmod +x ~/.glass/rc.sh
+# binaries
+install -m755 glass "$BIN/glass"
+install -m755 glassbg "$BIN/glassbg"
 
-cp glass ~/.glass/glass
-chmod +x ~/.glass/glass
+# config (install once)
+if [ ! -f "$ETC/glass.conf" ]; then
+    install -m644 extra/glass.conf "$ETC/glass.conf"
+else
+    echo "    glass.conf exists, not overwriting"
+fi
 
-cp glassbg ~/.glass/glassbg
-chmod +x ~/.glass/glassbg
+# assets
+install -m644 extra/wallpaper.jpg "$SHARE/wallpaper.jpg"
+install -m644 extra/xinitrc "$SHARE/xinitrc"
+install -m644 version "$SHARE/version"
 
-cp extra/xinitrc ~/.glass/xinitrc
-chmod +x ~/.glass/xinitrc
-cp extra/glass.conf ~/.glass/glass.conf
+# scripts
+#install -m755 extra/start-glass "$LIB/start-glass"
+#install -m755 extra/update.sh "$LIB/update.sh"
+
+# session (optional)
+if [ -d "$XSESSIONS" ]; then
+    install -m644 extra/glass.desktop "$XSESSIONS/glass.desktop"
+fi
+
+echo "[✓] Install complete"
