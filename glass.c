@@ -47,6 +47,7 @@ Window target;
 
 Window viewportLastFocused[9] = { None };
 
+
 u32 res_x;
 u32 res_y;
 
@@ -120,19 +121,19 @@ void switch_focus(Window trg)  {
 
 }
 
-void switch_viewport(u8 ws) {
-    if (ws == currentViewport) return;
+void switch_viewport(u8 vp) {
+    if (vp == currentViewport) return;
     Window next_focus = None;
     Window last = None;
     gClient* c = find_client(focused);
     if (moving && c) {
-        c->viewport = ws;
+        c->viewport = vp;
         next_focus = focused;
     } else if (c) {
-        if (viewportLastFocused[ws] != None) {
-            gClient* h = find_client(viewportLastFocused[ws]);
+        if (viewportLastFocused[vp] != None) {
+            gClient* h = find_client(viewportLastFocused[vp]);
             if (h) {
-                next_focus = viewportLastFocused[ws];
+                next_focus = viewportLastFocused[vp];
             }
         }
     }
@@ -141,7 +142,7 @@ void switch_viewport(u8 ws) {
     for (gClient *c = clients; c; c = c->next) {
         XWindowAttributes attributes;
         u8 h = XGetWindowAttributes(dpy, c->window, &attributes);
-        if (c->viewport == ws) {
+        if (c->viewport == vp) {
             if (h) {
                 if (!attributes.map_state) {
                     XMapWindow(dpy, c->window);
@@ -162,8 +163,8 @@ void switch_viewport(u8 ws) {
 
 
 
-    currentViewport = ws;
-    g_ewmh_set_current_desktop(dpy, root, &ewmh, ws);
+    currentViewport = vp;
+    g_ewmh_set_current_desktop(dpy, root, &ewmh, vp);
 
 
     if (next_focus != None) {
@@ -624,25 +625,25 @@ int main() {
         case ButtonPress:
             if (ev.xbutton.state & MOD && (ev.xbutton.button == Button4 || ev.xbutton.button == Button5)) {
                 gClient* temp = find_client(focused);
-                u8 ws = 0;
+                u8 vp = 0;
 
                 if (ev.xbutton.button == Button4) {
                     if (currentViewport < 8) {
-                        ws = currentViewport + 1;
+                        vp = currentViewport + 1;
                     } else {
-                        ws = 0;
+                        vp = 0;
                     }
                 } else if (ev.xbutton.button == Button5) {
                     if (currentViewport > 0) {
-                        ws = currentViewport - 1;
+                        vp = currentViewport - 1;
                     } else {
-                        ws = 8;
+                        vp = 8;
                     }
                 }
                 if (moving && temp) {
-                    temp->viewport = ws;
+                    temp->viewport = vp;
                 }
-                switch_viewport(ws);
+                switch_viewport(vp);
                 break;
             }
 
