@@ -17,7 +17,6 @@ XSESSIONS="$PREFIX/share/xsessions"
 echo "[*] Installing glass"
 echo "    PREFIX=$PREFIX"
 
-# sanity
 [ -x ./glass ] || {
     echo "glass binary not found (run ./build.sh first)"
     exit 1

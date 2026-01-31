@@ -39,5 +39,6 @@ static inline void glog(const char *msg, u8 type) {
     }
 
     fprintf(f, "%s\n", msg);
+    printf("%s\n", msg);
     fclose(f);
 }

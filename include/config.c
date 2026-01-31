@@ -55,9 +55,10 @@ typedef struct gDisplay {
 typedef struct gConfig {
     gBind* bindhead;
     gDisplay* displayhead;
+    gDisplay* primaryDisplay;
     u8 warpPointer;
     u8 shrc;
-    u8 dolog;
+    u8 logWindows;
 
     u8 displays;
 
@@ -86,16 +87,20 @@ gConfig* read_config() {
 
     snprintf(path, sizeof(path), "%s/.glass/glass.conf", getenv("HOME"));
     FILE *f = fopen(path, "r");
-    if (!f) {
-        return conf;
-    }
+
 
     // defaults
     conf->displayhead = NULL;
     conf->displays = 0;
     conf->bindhead = NULL;
     conf->warpPointer = 1;
+    conf->primaryDisplay = NULL;
+    conf->logWindows = 1;
     conf->shrc = 1;
+
+    if (!f) {
+        return conf;
+    }
 
     gDisplay* tempdisp = NULL;
     gDisplay* selected = NULL;
@@ -191,19 +196,20 @@ gConfig* read_config() {
             } else if (strcmp(option, "yes") == 0) {
                 conf->shrc = 1;
             }
-        } else if (strcmp(arg, "do_log") == 0) {
+        } else if (strcmp(arg, "log_windows") == 0) {
             char* option = strtok(NULL, delim);
             if (!option) continue;
             if (strcmp(option, "no") == 0) {
-                conf->dolog = 0;
+                conf->logWindows = 0;
             } else if (strcmp(option, "yes") == 0) {
-                conf->dolog = 1;
+                conf->logWindows = 1;
             }
         } else if (strcmp(arg, "display") == 0) {
             char* option = strtok(NULL, delim);
             if (!option) continue;
-            char* val = strtok(NULL, delim);
             if (!strcmp(option, "add")) {
+                char* val = strtok(NULL, delim);
+                if (!val) continue;
                 if (!conf->displayhead) {
                     conf->displayhead = new_empty_display();
                     tempdisp = conf->displayhead;
@@ -213,15 +219,23 @@ gConfig* read_config() {
                 }
                 selected = tempdisp;
                 if (val) selected->name = strdup(val);
-            } else if (val && selected) {
-                if (!strcmp(option, "x")) selected->posx = atoi(val);
-                else if (!strcmp(option, "y")) selected->posy = atoi(val);
-                else if (!strcmp(option, "w")) selected->width = atoi(val);
-                else if (!strcmp(option, "h")) selected->height = atoi(val);
-                else if (!strcmp(option, "top")) selected->gaptop = atoi(val);
-                else if (!strcmp(option, "bottom")) selected->gapbottom = atoi(val);
-                else if (!strcmp(option, "right")) selected->gapright = atoi(val);
-                else if (!strcmp(option, "left")) selected->gapleft = atoi(val);
+                else selected->name = strdup("n/a");
+                conf->displays++;
+            } else if (selected) {
+                char* val = strtok(NULL, " \n");
+                if (!val) {
+                    if (!strcmp(option, "nogaps")) selected->gapleft = selected->gapright = selected->gaptop = selected->gapbottom = 0;
+                    else if (!strcmp(option, "primary")) conf->primaryDisplay = selected;
+                } else {
+                    if (!strcmp(option, "x")) selected->posx = atoi(val);
+                    else if (!strcmp(option, "y")) selected->posy = atoi(val);
+                    else if (!strcmp(option, "w")) selected->width = atoi(val);
+                    else if (!strcmp(option, "h")) selected->height = atoi(val);
+                    else if (!strcmp(option, "top")) selected->gaptop = atoi(val);
+                    else if (!strcmp(option, "bottom")) selected->gapbottom = atoi(val);
+                    else if (!strcmp(option, "right")) selected->gapright = atoi(val);
+                    else if (!strcmp(option, "left")) selected->gapleft = atoi(val);
+                }
             }
         }
     }

@@ -129,7 +129,12 @@ void switch_viewport(u8 ws) {
         c->viewport = ws;
         next_focus = focused;
     } else if (c) {
-        viewportLastFocused[currentViewport] = focused;
+        if (viewportLastFocused[ws] != None) {
+            gClient* h = find_client(viewportLastFocused[ws]);
+            if (h) {
+                next_focus = viewportLastFocused[ws];
+            }
+        }
     }
 
 
@@ -154,12 +159,7 @@ void switch_viewport(u8 ws) {
         }
     }
 
-    if (viewportLastFocused[ws] != None) {
-        gClient* h = find_client(viewportLastFocused[ws]);
-        if (h) {
-            next_focus = viewportLastFocused[ws];
-        }
-    }
+
 
 
     currentViewport = ws;
@@ -179,6 +179,17 @@ void switch_viewport(u8 ws) {
         XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
         focused = root;
         g_ewmh_set_active_window(dpy, root, &ewmh, None);
+        if (conf->warpPointer && !moving) {
+            if (conf->primaryDisplay != NULL) {
+                XWarpPointer(dpy, None, root, 0, 0, 0, 0,
+                conf->primaryDisplay->posx + conf->primaryDisplay->width / 2,
+                conf->primaryDisplay->posy + conf->primaryDisplay->height / 2);
+                XSync(dpy, False);
+            } else {
+                XWindowAttributes b;
+                if (XGetWindowAttributes(dpy, root, &b)) XWarpPointer(dpy, None, root, 0, 0, 0, 0, b.width / 2, b.height / 2);
+            }
+        }
     }
 }
 
@@ -199,21 +210,6 @@ void spawn(const char *cmd) {
         exit(0);
     }
 }
-
-/*
-void toggle_fullscreen(Window w) {
-    gClient *c = find_client(w);
-    if (!c) return;
-
-    if (!c->fullscreen) {
-        XWindowAttributes attr;
-        XGetWindowAttributes(dpy, w, &attr);
-        c->old_x = attr.x; c->old_y = attr.y;
-        c->old_w = attr.width; c->old_h = attr.height;
-        XSetWindowBorder(dpy, Window, unsigned long)
-    }
-}
-*/
 
 void cycle_windows() {
     if (!clients) return;
@@ -282,9 +278,9 @@ void toggle_fullscreen(Window w) {
                 cy = attr.y + (attr.height / 2);
             }
 
-            gDisplay *target_disp = conf->displayhead;
+            gDisplay* target_disp = conf->displayhead;
 
-            for (gDisplay *d = conf->displayhead; d; d = d->next) {
+            for (gDisplay* d = conf->displayhead; d; d = d->next) {
                 if (cx >= d->posx && cx < d->posx + d->width &&
                     cy >= d->posy && cy < d->posy + d->height) {
                     target_disp = d;
@@ -426,14 +422,27 @@ int main() {
             gDisplay* h = conf->displayhead;
             while (h) {
                 char buf[128];
-                snprintf(buf, sizeof(buf), "Display %s: %dx%d at %d,%d",
-                         h->name, h->width, h->height, h->posx, h->posy);
+                if (h == conf->primaryDisplay) {
+                    snprintf(buf, sizeof(buf), "Primary display %s: %dx%d at %d,%d",
+                             h->name, h->width, h->height, h->posx, h->posy);
+                } else {
+                    snprintf(buf, sizeof(buf), "Display %s: %dx%d at %d,%d",
+                             h->name, h->width, h->height, h->posx, h->posy);
+                }
+
                 glog(buf, LOGTYPE_INIT);
                 h = h->next;
             }
         }
 
     glog("Done!", LOGTYPE_INIT);
+
+    if (conf->primaryDisplay != NULL) {
+        XWarpPointer(dpy, None, root, 0, 0, 0, 0,
+        conf->primaryDisplay->posx + conf->primaryDisplay->width / 2,
+        conf->primaryDisplay->posy + conf->primaryDisplay->height / 2);
+        XSync(dpy, False);
+    }
 
 
     for (;;) {
@@ -504,8 +513,8 @@ int main() {
 
 
             XWindowAttributes attrib;
-            XGetWindowAttributes(dpy, w, &attrib);
-            if (attrib.override_redirect) {
+            u8 dowegotattribs = (u8)XGetWindowAttributes(dpy, w, &attrib);
+            if (dowegotattribs && attrib.override_redirect) {
                 glog("Panel detected! (override_redirect)", LOGTYPE_WINDOW);
                 if (!panel) {
                     panel = w;
@@ -542,6 +551,17 @@ int main() {
                 }
             }
 
+            if (conf->logWindows) {
+                glog("New client, hello!", LOGTYPE_WINDOW);
+                char buf[256];
+                if (dowegotattribs) {
+                    snprintf(buf, sizeof(buf), "New client: %dx%d at %d,%d",
+                             attrib.width, attrib.height, attrib.x, attrib.y);
+                } else {
+                    snprintf(buf, sizeof(buf), "New client! (can't get attributes)");
+                }
+                glog(buf, LOGTYPE_WINDOW);
+
 
             if (c && c->viewport == currentViewport) {
                 XMapWindow(dpy, c->window);
@@ -558,12 +578,11 @@ int main() {
 
                     XMoveWindow(dpy, c->window, pos_x, pos_y);
                 } else
-                if (conf->warpPointer && c->viewport == currentViewport) {
-                    XWarpPointer(dpy, None, focused, 0,0,0,0,attrib.width/2, attrib.height/2);
+                    if (conf->warpPointer && c->viewport == currentViewport) {
+                        XWarpPointer(dpy, None, focused, 0,0,0,0,attrib.width/2, attrib.height/2);
+                    }
                 }
 
-
-                glog("New client, hello!", LOGTYPE_WINDOW);
                 g_ewmh_set_window_type(dpy, c->window, &ewmh);
                 g_ewmh_set_motif_hints(dpy, c->window, 1, &ewmh);
                 //g_ewmh_set_gtk_frame_extents(dpy, c->window, 1, 1, 23, 1, &ewmh);
@@ -579,7 +598,7 @@ int main() {
                 XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
             }
             remove_client(ev.xdestroywindow.window);
-            glog("Client destroyed.", LOGTYPE_WINDOW);
+            if (conf->logWindows) glog("Client destroyed.", LOGTYPE_WINDOW);
             break;
 
         case UnmapNotify:
@@ -613,7 +632,7 @@ int main() {
                     } else {
                         ws = 0;
                     }
-                } else if (ev.xbutton.button == Button5){
+                } else if (ev.xbutton.button == Button5) {
                     if (currentViewport > 0) {
                         ws = currentViewport - 1;
                     } else {
@@ -732,7 +751,7 @@ int main() {
                     if (c) {
                         XKillClient(dpy, focused);
                         remove_client(focused);
-                        glog("Killing client on user request", LOGTYPE_WINDOW);
+                        if (conf->logWindows) glog("Killing client on user request", LOGTYPE_WINDOW);
                         //XSetInputFocus(dpy, Window, int, Time)
                     }
                     break;
