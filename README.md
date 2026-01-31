@@ -19,7 +19,7 @@ Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details.
 
 Glass aims to be stable, efficient, simple, performant, and highly configurable.
 
-It is explicitly viewport-focused. As a result, window minimization is not supported and will not be added by design. Likewise, window decorations are intentionally omitted. A user skilled enough to use Glass is expected to distinguish their windows and remember the small, essential set of keybindings.
+It is explicitly viewport-focused. As a result, window minimization is not supported and will not be added by design. Likewise, window decorations (except borders) are intentionally omitted. A user skilled enough to use Glass is expected to distinguish their windows and remember the small, essential set of keybindings.
 
 Glass favors clarity, explicit control, and minimal abstraction over convenience features.
 
@@ -31,7 +31,8 @@ Glass favors clarity, explicit control, and minimal abstraction over convenience
 
 ## Installation
 
-This section has been removed as per the existance of the [Glass wiki](https://github.com/vpabjan/glass/wiki). Refer to the wiki for installation and configuration steps. (Keep in mind everything WIP)
+This section has been removed as per the existance of the [Glass wiki](https://github.com/vpabjan/glass/wiki). Refer to the wiki for installation and configuration steps.\
+You can find the installation manual on the page [Installing Glass](https://github.com/vpabjan/glass/wiki/Installing-Glass).
 
 ## Contributing
 
