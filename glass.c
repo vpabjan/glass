@@ -102,14 +102,16 @@ void switch_focus(Window trg)  {
     gClient *f = find_client(focused);
     gClient *c = find_client(trg);
 
-    if (focused && f) {
+    if (focused && f && !f->fullscreen) {
         XSetWindowBorderWidth(dpy, focused, 4);
         XSetWindowBorder(dpy, focused, 0x000000);
     }
 
     if (c) {
-        XSetWindowBorderWidth(dpy, trg, 4);
-        XSetWindowBorder(dpy, trg, 0xFFFFFF);
+        if (!c->fullscreen) {
+            XSetWindowBorderWidth(dpy, trg, 4);
+            XSetWindowBorder(dpy, trg, 0xFFFFFF);
+        }
         XSetInputFocus(dpy, trg, RevertToPointerRoot, CurrentTime);
         XRaiseWindow(dpy, trg);
     } else {
@@ -455,14 +457,14 @@ int main() {
             XWindowAttributes a;
 
             Window w = ev.xcrossing.window;
-
+            gClient* f = find_client(w);
 
             if (w==root) break;
             if (ev.xcrossing.mode != NotifyNormal || ev.xcrossing.detail == NotifyInferior) break;
             //if (w==focused) break;
 
 
-            if (XGetWindowAttributes(dpy, w, &a)) {
+            if (XGetWindowAttributes(dpy, w, &a) && f && !f->fullscreen) {
                 XSetWindowBorderWidth(dpy, w, 4);
                 XSetWindowBorder(dpy, w, 0x000000);
             }
@@ -476,6 +478,7 @@ int main() {
 
             gClient* f = NULL;
             if (focused && focused != root && focused != None) f = find_client(focused);
+
 
             gClient* c = find_client(ev.xcrossing.window);
             if (!c) break;
