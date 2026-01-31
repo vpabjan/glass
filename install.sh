@@ -10,7 +10,7 @@ fi
 
 BIN="$PREFIX/bin"
 LIB="$PREFIX/lib/glass"
-SHARE="$PREFIX/share/glass"
+XSESSIONS="/usr/share/xsessions"
 ETC="$PREFIX/etc/glass"
 XSESSIONS="$PREFIX/share/xsessions"
 
@@ -47,7 +47,8 @@ install -m644 extra/xinitrc "$SHARE/xinitrc"
 install -m644 version "$SHARE/version"
 
 # scripts
-#install -m755 extra/start-glass "$LIB/start-glass"
+install -m755 extra/start-glass "$BIN/start-glass"
+install -m755 extra/start-glass "$BIN/update-glass"
 #install -m755 extra/update.sh "$LIB/update.sh"
 
 # session (optional)
