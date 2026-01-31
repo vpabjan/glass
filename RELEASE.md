@@ -40,6 +40,15 @@
 
 ---
 
+# Version 0.0.5
+
++ updating and installing now works properly, glass is now installed systemwide
++ fullscreen border fixes
++ other script changes
++ bug fixes
+
+---
+
 ## TODO
 
 + improve panel handling. this will be done with an eventual include/panel.c
