@@ -16,8 +16,8 @@ install -m644 extra/glass.conf "/etc/glass.conf"
 
 mkdir -p $HOME/.glass
 touch $HOME/log
-touich $HOME/rc.sh
-install -m644 extra/glass.conf "$HOME/.glass/glass.conf"
+touch $HOME/rc.sh
+#install -m644 extra/glass.conf "$HOME/.glass/glass.conf"
 
 
 # assets
