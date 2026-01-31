@@ -2,7 +2,7 @@
 
 **Glass** is a lightweight X11 window manager written in C using Xlib.\
 It is designed to be simple, fast, and highly configurable.\
-Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details.
+Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details and [release](RELEASE.MD) for updates.
 
 ---
 
@@ -10,8 +10,8 @@ Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details.
 
 - Core window management: move, resize, close, and move windows between viewports
 - Lightweight and minimal (~2.7 MB RAM usage)
-- Compatible with status bars such as **polybar** (recommended) or **xfce4-panel**
-- Compatible with compositors such as **picom** (recommended)
+- Compatible with status bars such as [polybar](https://github.com/polybar/polybar) (recommended) or **xfce4-panel**
+- Compatible with compositors such as [picom](https://github.com/yshui/picom) (recommended)
 
 ---
 
@@ -31,8 +31,7 @@ Glass favors clarity, explicit control, and minimal abstraction over convenience
 
 ## Installation
 
-This section has been removed as per the existance of the [Glass wiki](https://github.com/vpabjan/glass/wiki). Refer to the wiki for installation and configuration steps.\
-You can find the installation manual on the page [Installing Glass](https://github.com/vpabjan/glass/wiki/Installing-Glass).
+This section has been removed as per the existance of the [Glass wiki](https://github.com/vpabjan/glass/wiki). Refer to the wiki for installation and configuration steps. You can find the installation manual on the page [Installing Glass](https://github.com/vpabjan/glass/wiki/Installing-Glass).
 
 ## Contributing
 
