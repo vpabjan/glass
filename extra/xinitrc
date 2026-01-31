@@ -1,2 +1,2 @@
 #!/bin/sh
-exec "$HOME/.glass/glass"
+exec "/usr/local/bin/glass"

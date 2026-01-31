@@ -48,7 +48,7 @@ install -m644 version "$SHARE/version"
 
 # scripts
 install -m755 extra/start-glass "$BIN/start-glass"
-install -m755 extra/start-glass "$BIN/update-glass"
+install -m755 extra/update-glass.sh "$BIN/update-glass"
 #install -m755 extra/update.sh "$LIB/update.sh"
 
 # session (optional)
