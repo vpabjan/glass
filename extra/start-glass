@@ -1,19 +1,2 @@
 #!/bin/sh
-
-GLASS_BIN="$(command -v glass)"
-PREFIX="$(dirname "$(dirname "$GLASS_BIN")")"
-
-XINITRC="$PREFIX/share/glass/xinitrc"
-
-if [ ! -f "$XINITRC" ]; then
-    echo "start-glass: xinitrc not found at $XINITRC" >&2
-    exit 1
-fi
-
-if [ -z "$DISPLAY" ]; then
-    exec startx "$XINITRC" -- \
-        -keeptty \
-        -nolisten tcp
-else
-    exec glass
-fi
+startx $HOME/.glass/xinitrc
