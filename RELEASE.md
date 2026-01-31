@@ -9,6 +9,8 @@
 + window cycling
 + many more...
 
+---
+
 # Version 0.0.2
 
 + added displays
