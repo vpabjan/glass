@@ -23,8 +23,7 @@
 
 # Version 0.0.3
 
-- workspaces
-+ viewports
++ workspaces -> viewports
 + upon switching viewports, the last window is now remembered and reverted to when switching back
 + issues with focus being uncertain and buggy on viewport switching until user intervation by change of focus manually
 + border behavior fixed
