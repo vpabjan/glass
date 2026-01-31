@@ -39,6 +39,8 @@
 + log_windows option added to config. enable or disable window resolution and position being logged.
 + ensured no reliance on bash
 
+---
+
 ## TODO
 
 + improve panel handling. this will be done with an eventual include/panel.c
