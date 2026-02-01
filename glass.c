@@ -12,21 +12,9 @@
 #include "include/types.h"
 #include "include/env.c"
 #include "include/log.c"
+#include "include/client.c"
 
 #define MOD Mod4Mask   // Super key
-
-typedef struct gClient {
-    Window window;
-    u32 height;
-    u32 width;
-    u32 x;
-    u32 y;
-    u8 viewport;
-    u8 fullscreen;
-    int old_x, old_y, old_w, old_h;
-
-    struct gClient* next;
-} gClient;
 
 typedef struct gViewport {
     u8 tile;
@@ -51,12 +39,14 @@ Window viewportLastFocused[9] = { None };
 u32 res_x;
 u32 res_y;
 
+u8 grunning;
 
 int moving = 0, resizing = 0;
 int start_x, start_y;
 int win_x, win_y, win_w, win_h;
 
 gClient* clients = NULL;
+gClient* panels = NULL;
 
 Window panel = None;
 int showPanel = 1;
@@ -70,37 +60,11 @@ Window wmcheck;
 
 Cursor cursor;
 
-void add_client(Window w) {
-    gClient *c = calloc(1, sizeof(gClient));
-    c->window = w;
-    c->viewport = currentViewport;
-    c->next = clients;
-    clients = c;
-}
 
-void remove_client(Window w) {
-    gClient **cc = &clients;
-    while (*cc) {
-        if ((*cc)->window == w) {
-            gClient *dead = *cc;
-            *cc = dead->next;
-            free(dead);
-            return;
-        }
-        cc = &(*cc)->next;
-    }
-}
-
-gClient *find_client(Window w) {
-    for (gClient *c = clients; c; c = c->next)
-        if (c->window == w)
-            return c;
-    return NULL;
-}
 
 void switch_focus(Window trg)  {
-    gClient *f = find_client(focused);
-    gClient *c = find_client(trg);
+    gClient *f = find_client(clients, focused);
+    gClient *c = find_client(clients, trg);
 
     if (focused && f && !f->fullscreen) {
         XSetWindowBorderWidth(dpy, focused, 4);
@@ -119,6 +83,7 @@ void switch_focus(Window trg)  {
     }
     // bp1
     focused = trg;
+    viewportLastFocused[currentViewport] = focused;
     g_ewmh_set_active_window(dpy, root, &ewmh, focused);
 
 }
@@ -127,13 +92,13 @@ void switch_viewport(u8 vp) {
     if (vp == currentViewport) return;
     Window next_focus = None;
     Window last = None;
-    gClient* c = find_client(focused);
+    gClient* c = find_client(clients, focused);
     if (moving && c) {
         c->viewport = vp;
         next_focus = focused;
     } else if (c) {
         if (viewportLastFocused[vp] != None) {
-            gClient* h = find_client(viewportLastFocused[vp]);
+            gClient* h = find_client(clients, viewportLastFocused[vp]);
             if (h) {
                 next_focus = viewportLastFocused[vp];
             }
@@ -161,9 +126,6 @@ void switch_viewport(u8 vp) {
 
         }
     }
-
-
-
 
     currentViewport = vp;
     g_ewmh_set_current_desktop(dpy, root, &ewmh, vp);
@@ -217,7 +179,7 @@ void spawn(const char *cmd) {
 void cycle_windows() {
     if (!clients) return;
 
-    gClient *active = find_client(focused);
+    gClient *active = find_client(clients, focused);
 
     if (active && active->next) {
         if (clients == active) {
@@ -251,7 +213,7 @@ void cycle_windows() {
 }
 
 void toggle_fullscreen(Window w) {
-    gClient *c = find_client(w);
+    gClient *c = find_client(clients, w);
     if (!c) return;
 
     if (!conf->displayhead) {
@@ -310,6 +272,25 @@ void toggle_fullscreen(Window w) {
     }
 }
 
+u32 check_all_clients() {
+    XWindowAttributes a;
+    register int n;
+    char buffer[256];
+    gClient* prev = NULL;
+    for (gClient* c = clients; c; c = c->next) {
+        if (XGetWindowAttributes(dpy, c->window, &a)) {
+            c->x = a.x; c->y = a.y; c->width = a.width; c->height = a.height; n++;
+        } else {
+            if (prev) prev->next = c->next;
+            free(c);
+            snprintf(buffer, sizeof(buffer), "Killed ghost client");
+            glog(buffer, LOGTYPE_RUNTIME);
+        }
+        prev = c;
+    }
+    return n;
+}
+
 int x_error_handler(Display* d, XErrorEvent*  e) {
     char msg[512];
     XGetErrorText(d, e->error_code, msg, sizeof(msg));
@@ -321,6 +302,8 @@ int main() {
     XEvent ev;
 
     glog("Starting Glass...", LOGTYPE_INIT);
+
+    grunning = 1;
 
     init_env();
 
@@ -448,16 +431,17 @@ int main() {
     }
 
 
-    for (;;) {
+    while (grunning) {
         XNextEvent(dpy, &ev);
 
-        switch (ev.type) {
+        check_all_clients();
 
+        switch (ev.type) {
         case LeaveNotify: {
             XWindowAttributes a;
 
             Window w = ev.xcrossing.window;
-            gClient* f = find_client(w);
+            gClient* f = find_client(clients, w);
 
             if (w==root) break;
             if (ev.xcrossing.mode != NotifyNormal || ev.xcrossing.detail == NotifyInferior) break;
@@ -477,10 +461,10 @@ int main() {
             if (ev.xcrossing.mode != NotifyNormal || ev.xcrossing.detail == NotifyInferior) break;
 
             gClient* f = NULL;
-            if (focused && focused != root && focused != None) f = find_client(focused);
+            if (focused && focused != root && focused != None) f = find_client(clients, focused);
 
 
-            gClient* c = find_client(ev.xcrossing.window);
+            gClient* c = find_client(clients, ev.xcrossing.window);
             if (!c) break;
 
             if (moving || resizing) break;
@@ -511,7 +495,7 @@ int main() {
         case MapRequest: {
             Window w = ev.xmaprequest.window;
 
-            if (find_client(w)) break;
+            if (find_client(clients, w)) break;
 
             Window par = ev.xmaprequest.parent;
 
@@ -519,16 +503,14 @@ int main() {
             XWindowAttributes attrib;
             u8 dowegotattribs = (u8)XGetWindowAttributes(dpy, w, &attrib);
             if (dowegotattribs && attrib.override_redirect) {
-                glog("Panel detected! (override_redirect)", LOGTYPE_WINDOW);
-                if (!panel) {
-                    panel = w;
-                }
+                if (conf->logWindows)glog("Panel detected! (override_redirect)", LOGTYPE_WINDOW);
+                add_client(&panels, w);
                 break;
             }
 
-            add_client(w);
+            add_client(&clients, w);
 
-            gClient *c = find_client(w);
+            gClient *c = find_client(clients, w);
 
             c->fullscreen = 0;
 
@@ -543,13 +525,14 @@ int main() {
             }
              */
 
-            gClient* rparent = find_client(par);
+            gClient* rparent = find_client(clients, par);
             if (rparent) c->viewport = rparent->viewport;
+            else c->viewport = currentViewport;
 
             Window trans;
             if (XGetTransientForHint(dpy, w, &trans)) {
-                gClient* parent = find_client(trans);
-                gClient* current = find_client(w);
+                gClient* parent = find_client(clients, trans);
+                gClient* current = find_client(clients, w);
                 if (parent && current) {
                     current->viewport = parent->viewport;
                 }
@@ -601,7 +584,7 @@ int main() {
                 focused = None;
                 XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
             }
-            remove_client(ev.xdestroywindow.window);
+            remove_client(&clients, ev.xdestroywindow.window);
             if (conf->logWindows) glog("Client destroyed.", LOGTYPE_WINDOW);
             break;
 
@@ -627,7 +610,7 @@ int main() {
 
         case ButtonPress:
             if (ev.xbutton.state & MOD && (ev.xbutton.button == Button4 || ev.xbutton.button == Button5)) {
-                gClient* temp = find_client(focused);
+                gClient* temp = find_client(clients, focused);
                 u8 vp = 0;
 
                 if (ev.xbutton.button == Button4) {
@@ -751,10 +734,10 @@ int main() {
                 case (BQUIT):
                     gClient* c = NULL;
                     if (!focused || focused == root) break;
-                    c = find_client(focused);
+                    c = find_client(clients, focused);
                     if (c) {
                         XKillClient(dpy, focused);
-                        remove_client(focused);
+                        remove_client(&clients, focused);
                         if (conf->logWindows) glog("Killing client on user request", LOGTYPE_WINDOW);
                         //XSetInputFocus(dpy, Window, int, Time)
                     }
@@ -781,12 +764,12 @@ int main() {
                 case (BEXIT):
                     XCloseDisplay(dpy);
                     glog("User used exit key. Shutting down.", LOGTYPE_RUNTIME);
-                    while (conf->bindhead != NULL) conf->bindhead = conf->bindhead->next;
-                    for (gClient* c = clients; c; c = c->next) {
-                        free(c);
-                    }
-                    exit(0);
-                    break;
+                    for (gDisplay* d = conf->displayhead; d; d = d->next) free(d);
+                    for (gBind* b = conf->bindhead; b; b = b->next) free(b);
+                    for (gClient* c = clients; c; c = c->next) free(c);
+
+                    grunning = 0;
+                    continue;
                 case (BCYCLE):
                     cycle_windows();
                     break;
@@ -806,7 +789,7 @@ int main() {
                     switch_viewport(bind->type);
                 } else {
                     if (focused && focused != root) {
-                        gClient* hi = find_client(focused);
+                        gClient* hi = find_client(clients, focused);
                         if (hi && (currentViewport != bind->type)) {
                             hi->viewport = bind->type;
                             XUnmapWindow(dpy, focused);
@@ -817,4 +800,5 @@ int main() {
             break;
         }
     }
+
 }
