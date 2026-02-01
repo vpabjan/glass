@@ -765,11 +765,13 @@ int main() {
                     spawn((char*)bind->data);
                     break;
                 case (BPANEL): {
-                    if (panel == None) break;
+                    if (panels == NULL) break;
                     if (showPanel) {
-                        XUnmapWindow(dpy, panel);
+                        for (gClient* b = panels; b; b = b->next)
+                            XUnmapWindow(dpy, panels->window);
                     } else {
-                        XMapWindow(dpy, panel);
+                        for (gClient* b = panels; b; b = b->next)
+                            XMapWindow(dpy, panels->window);
                     }
                     showPanel = !showPanel;
                     break;

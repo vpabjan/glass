@@ -17,6 +17,7 @@ install -m644 extra/glass.conf "/etc/glass.conf"
 mkdir -p $HOME/.glass
 touch $HOME/log
 touch $HOME/rc.sh
+chmod +x $HOME/.glass/rc.sh
 #install -m644 extra/glass.conf "$HOME/.glass/glass.conf"
 
 
