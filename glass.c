@@ -30,8 +30,10 @@ gConfig* conf;
 
 Window root;
 Window focused;
+Window prev_focused = None;
 Window grabbed;
 Window target;
+
 
 Window viewportLastFocused[9] = { None };
 
@@ -82,6 +84,7 @@ void switch_focus(Window trg)  {
         XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
     }
     // bp1
+    prev_focused = focused;
     focused = trg;
     viewportLastFocused[currentViewport] = focused;
     g_ewmh_set_active_window(dpy, root, &ewmh, focused);
@@ -272,22 +275,35 @@ void toggle_fullscreen(Window w) {
     }
 }
 
-u32 check_all_clients() {
+int check_all_clients() {
     XWindowAttributes a;
-    register int n;
+    register int n = 0;
     char buffer[256];
     gClient* prev = NULL;
-    for (gClient* c = clients; c; c = c->next) {
+    gClient* c = clients;
+    while (c) {
+        gClient* next = c->next;
+
         if (XGetWindowAttributes(dpy, c->window, &a)) {
-            c->x = a.x; c->y = a.y; c->width = a.width; c->height = a.height; n++;
+            c->x = a.x; c->y = a.y; c->width = a.width; c->height = a.height; n++; prev = c;
         } else {
-            if (prev) prev->next = c->next;
+            if (prev) prev->next = next;
+            else clients = next;
+
+            if (focused == c->window) {
+                gClient* ppp = find_client(clients, prev_focused);
+                if (ppp && ppp->viewport == currentViewport) switch_focus(prev_focused);
+                else focused = None;
+            }
+
+
             free(c);
             snprintf(buffer, sizeof(buffer), "Killed ghost client");
             glog(buffer, LOGTYPE_RUNTIME);
         }
-        prev = c;
+        c = next;
     }
+    XSync(dpy, False);
     return n;
 }
 
@@ -581,10 +597,13 @@ int main() {
         case DestroyNotify:
             Window w = ev.xdestroywindow.window;
             if (focused == w) {
-                focused = None;
+                gClient* p = find_client(clients, prev_focused);
+                if (p) switch_focus(prev_focused);
+                else focused = None;
                 XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
             }
-            remove_client(&clients, ev.xdestroywindow.window);
+            if (find_client(clients, w)) remove_client(&clients, ev.xdestroywindow.window);
+            else if (find_client(panels, w)) remove_client(&panels, ev.xdestroywindow.window);
             if (conf->logWindows) glog("Client destroyed.", LOGTYPE_WINDOW);
             break;
 
