@@ -1,38 +1,48 @@
 #!/bin/sh
 
-echo "[*] Installing glass"
+USER=$(id -un)
+HOST=$(uname -n)
+
+
+
+PS4="$USER@$HOST~# "
+
+echo "[*] Installing Glass..."
 
 [ -x ./glass ] || {
     echo "glass binary not found (run ./build.sh first)"
     exit 1
 }
 
-# binaries
 
+# binaries
+echo "  -> Installing binaries..."
+set -x
 install -m755 glass "/bin/glass"
 install -m755 glassbg "/bin/glassbg"
+{ set +x; } 2>/dev/null
 
-install -m644 extra/glass.conf "/etc/glass.conf"
-
-mkdir -p $HOME/.glass
-touch $HOME/log
-touch $HOME/rc.sh
-chmod +x $HOME/.glass/rc.sh
-#install -m644 extra/glass.conf "$HOME/.glass/glass.conf"
-
-
-# assets
-#install -m644 extra/wallpaper.jpg "$SHARE/wallpaper.jpg"
-install -m644 extra/xinitrc "$HOME/.glass/xinitrc"
-#install -m644 version "/version"
-
-# scripts
+echo "  -> Installing scripts..."
+set -x
 install -m755 extra/start-glass "/bin/start-glass"
 install -m755 extra/update-glass.sh "/bin/update-glass"
-#install -m755 extra/update.sh "$LIB/update.sh"
+{ set +x; } 2>/dev/null
 
-mkdir -p /usr/share/xsessions
+echo "  -> Installing session..."
+set -x
+install -d /usr/share/xsessions
 install -m644 extra/glass.desktop "/usr/share/xsessions/glass.desktop"
+{ set +x; } 2>/dev/null
 
+# glass runtime meta folder
+
+echo "  -> Installing extras..."
+set -x
+install -d -m755 /var/lib/glass
+install -d -m755 /var/lib/glass/default
+install -m644 extra/glass.conf "/var/lib/glass/default/glass.conf"
+install -m644 extra/xinitrc "/var/lib/glass/default/xinitrc"
+#install -m644 extra/wallpaper.jpg "/var/lib/glass/default/wallpaper.jpg"
+{ set +x; } 2>/dev/null
 
 echo "[✓] Install complete"

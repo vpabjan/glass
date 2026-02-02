@@ -1,2 +1,2 @@
 #!/bin/sh
-startx $HOME/.glass/xinitrc
+startx /var/lib/glass/default/xinitrc

@@ -1,16 +1,29 @@
 #!/bin/bash
 
+USER=$(id -un)
+HOST=$(uname -n)
+
+
+
+PS4="$USER@$HOST~# "
+
 echo "[*] Cloning glass"
+
+set -x
 
 cd /tmp
 
 git clone https://github.com/vpabjan/glass.git
 cd glass
 
+{ set +x; } 2>/dev/null
+
 echo "[*] Applying permissions"
 
+set -x
 chmod +x build.sh
 chmod +x install.sh
+{ set +x; } 2>/dev/null
 
 echo "[*] Building glass"
 
