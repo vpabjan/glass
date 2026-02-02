@@ -13,12 +13,12 @@
 #include "include/env.c"
 #include "include/log.c"
 #include "include/client.c"
+#include "include/viewport.c"
 
 #define MOD Mod4Mask   // Super key
+#define GVIEWPORTS 9
 
-typedef struct gViewport {
-    u8 tile;
-} gViewport;
+
 
 int rx, ry, wx, wy;
 unsigned int mask;
@@ -34,8 +34,6 @@ Window prev_focused = None;
 Window grabbed;
 Window target;
 
-
-Window viewportLastFocused[9] = { None };
 
 
 u32 res_x;
@@ -54,8 +52,8 @@ Window panel = None;
 int showPanel = 1;
 
 
-
 u8 currentViewport = 0;
+gViewport viewports[GVIEWPORTS];
 
 gEWMH ewmh;
 Window wmcheck;
@@ -86,7 +84,7 @@ void switch_focus(Window trg)  {
     // bp1
     prev_focused = focused;
     focused = trg;
-    viewportLastFocused[currentViewport] = focused;
+    viewports[currentViewport].last_focused = focused;
     g_ewmh_set_active_window(dpy, root, &ewmh, focused);
 
 }
@@ -100,11 +98,8 @@ void switch_viewport(u8 vp) {
         c->viewport = vp;
         next_focus = focused;
     } else if (c) {
-        if (viewportLastFocused[vp] != None) {
-            gClient* h = find_client(clients, viewportLastFocused[vp]);
-            if (h) {
-                next_focus = viewportLastFocused[vp];
-            }
+        if (viewports[currentViewport].last_focused != None) {
+            next_focus = viewports[currentViewport].last_focused;
         }
     }
 
@@ -321,22 +316,30 @@ int main() {
 
     grunning = 1;
 
+    glog("Initialize variables...", LOGTYPE_INIT);
+
+    glog("Set up environment...", LOGTYPE_INIT);
+
     init_env();
 
 
-    glog("Loading config...", LOGTYPE_INIT);
+    glog("Load config...", LOGTYPE_INIT);
     conf = read_config();
     if (!conf) {
         glog("Cannot read config! Defaults will be applied for the session.", LOGTYPE_ERR);
     }
 
-    glog("Initializing display...", LOGTYPE_INIT);
+    glog("Attempting to grab display...", LOGTYPE_INIT);
     dpy = XOpenDisplay(NULL);
     if (!dpy) {
         fprintf(stderr, "cannot open display\n");
         glog("Cannot open display! This error is fatal, exiting.", LOGTYPE_ERR);
         return 1;
+    } else {
+        glog("Successfully obtained display...", LOGTYPE_INIT);
     }
+
+    glog("Successfully obtained display...", LOGTYPE_INIT);
 
     XSetErrorHandler(x_error_handler);
 
@@ -372,6 +375,12 @@ int main() {
     g_ewmh_set_current_desktop(dpy, root, &ewmh, currentViewport);
 
 
+    glog("Initialize viewports...", LOGTYPE_INIT);
+
+    for (int x = 0; x < GVIEWPORTS; x++) {
+        viewports[x].last_focused = None;
+        viewports[x].mode = conf->autotile;
+    }
 
 
     glog("Grabbing keys and buttons...", LOGTYPE_INIT);
@@ -718,7 +727,7 @@ int main() {
             int dy = ev.xmotion.y_root - start_y;
 
             if (moving) {
-                XMoveWindow(dpy, target, win_x + dx, win_y + dy);
+                if (dx && dy) XMoveWindow(dpy, target, win_x + dx, win_y + dy);
             } else if (resizing) {
                 XResizeWindow(dpy, target,
                               (win_w + dx > 50) ? win_w + dx : 50,

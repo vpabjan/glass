@@ -11,9 +11,9 @@ typedef enum gBindType {
     BWS1 = 0, BWS2 = 1, BWS3 = 2,
     BWS4 = 3, BWS5 = 4, BWS6 = 5,
     BWS7 = 6, BWS8 = 7, BWS9 = 8,
-    BTERMINAL, BLAUNCHER, BSPAWN,
-    BQUIT, BEXIT, BPANEL,
-    BCYCLE, BFULLSCREEN
+    BSPAWN, BQUIT, BEXIT,
+    BPANEL, BCYCLE, BFULLSCREEN,
+    GTILE
 } gBindType;
 
 typedef struct gBind {
@@ -59,6 +59,7 @@ typedef struct gConfig {
     u8 warpPointer;
     u8 shrc;
     u8 logWindows;
+    u8 autotile;
 
     u8 displays;
 
@@ -91,6 +92,7 @@ gConfig* read_config() {
 
     // defaults
     conf->displayhead = NULL;
+    conf->autotile = 0;
     conf->displays = 0;
     conf->bindhead = NULL;
     conf->warpPointer = 1;
@@ -187,6 +189,14 @@ gConfig* read_config() {
                 conf->warpPointer = 0;
             } else if (strcmp(option, "yes") == 0) {
                 conf->warpPointer = 1;
+            }
+        } else if (strcmp(arg, "wm") == 0) {
+            char* option = strtok(NULL, delim);
+            if (!option) continue;
+            if (strcmp(option, "float") == 0) {
+                conf->autotile = 0;
+            } else if (strcmp(option, "tile") == 0) {
+                conf->autotile = 1;
             }
         } else if (strcmp(arg, "do_rc") == 0) {
             char* option = strtok(NULL, delim);
