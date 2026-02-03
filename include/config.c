@@ -46,19 +46,14 @@ typedef struct gConfig {
     gBind* bindhead;
     gDisplay* displayhead;
     gDisplay* primaryDisplay;
+
+    // bools
     u8 warpPointer;
     u8 shrc;
     u8 logWindows;
     u8 autotile;
-
+    u8 modmenu;
     u8 displays;
-
-    char** need;
-    u16 needlen;
-    char** exec;
-    u16 execlen;
-
-
 } gConfig;
 
 static inline gDisplay* new_empty_display() {
@@ -89,6 +84,7 @@ gConfig* read_config() {
     conf->primaryDisplay = NULL;
     conf->logWindows = 1;
     conf->shrc = 1;
+    conf->modmenu = 1;
 
     if (!f) {
         return conf;

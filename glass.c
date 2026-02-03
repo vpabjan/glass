@@ -15,6 +15,7 @@
 #include "include/client.c"
 #include "include/viewport.c"
 #include "include/display.c"
+#include "include/widgets.c"
 
 #define MOD Mod4Mask   // Super key
 #define GVIEWPORTS 9
@@ -35,7 +36,10 @@ Window prev_focused = None;
 Window grabbed;
 Window target;
 
-
+Window bar;
+GC bargc;
+i32 barx, bary;
+u32 barw, barh;
 
 u32 res_x;
 u32 res_y;
@@ -420,6 +424,10 @@ int main() {
                 ButtonPressMask | ButtonReleaseMask | PointerMotionMask,
                 GrabModeAsync, GrabModeAsync, None, None);
 
+    grab_key(XK_Super_L);
+    grab_key(XK_Super_L & Mod4Mask);
+
+
     gBind* a = conf->bindhead;
 
     while (a) {
@@ -465,20 +473,40 @@ int main() {
             }
         }
 
-    glog("Done!", LOGTYPE_INIT);
-
-    if (conf->primaryDisplay != NULL) {
+    if (conf->primaryDisplay) {
         XWarpPointer(dpy, None, root, 0, 0, 0, 0,
         conf->primaryDisplay->posx + conf->primaryDisplay->width / 2,
         conf->primaryDisplay->posy + conf->primaryDisplay->height / 2);
+        barx = conf->primaryDisplay->posx;
+        bary = conf->primaryDisplay->posy + conf->primaryDisplay->height - 16;
+        barw = conf->primaryDisplay->width;
+        barh = 16;
         XSync(dpy, False);
     }
+
+
+
+    //bar = gWidgetsModMenuCreate(dpy, root, barx, bary, barw, barh);
+    //bargc = XCreateGC(dpy, bar, 0, NULL);
+    //XSetForeground(dpy, bargc, 0xFFFFFF);
+    //XSetBackground(dpy, bargc, 0x000000);
+    //XFontStruct* font = XLoadQueryFont(dpy, "fixed");
+
+    //XSetFont(dpy, bargc, font->fid);
+
+
+    //XMapWindow(dpy, bar);
+
+    glog("Done!", LOGTYPE_INIT);
+
+
 
 
     while (grunning) {
         XNextEvent(dpy, &ev);
 
-        check_all_clients();
+        if (ev.type == MapRequest || ev.type == DestroyNotify || ev.type == UnmapNotify ||
+            ev.type == ConfigureRequest || ev.type == ButtonRelease) check_all_clients();
 
         switch (ev.type) {
         case LeaveNotify: {
@@ -490,6 +518,7 @@ int main() {
             if (w==root) break;
             if (ev.xcrossing.mode != NotifyNormal || ev.xcrossing.detail == NotifyInferior) break;
             //if (w==focused) break;
+
 
 
             if (XGetWindowAttributes(dpy, w, &a) && f && !f->fullscreen) {
@@ -734,9 +763,11 @@ int main() {
             break;
 
         case KeyRelease:
+            /*
             if (ev.xbutton.button == XK_Super_L) {
-
+                XUnmapWindow(dpy, bar);
             }
+             */
             break;
 
         case MotionNotify:
@@ -768,6 +799,16 @@ int main() {
             KeySym sym = XKeycodeToKeysym(dpy, ev.xkey.keycode, 0);
             //KeySym sym = XLookupKeysym(&ev.xkey,
             //    (ev.xkey.state & ShiftMask) ? 1 : 0);
+
+
+            /*
+            if (ev.xbutton.button == XK_Super_L) {
+                gWidgetsModMenuDraw(dpy, bar, bargc);
+                XMapWindow(dpy, bar);
+                XRaiseWindow(dpy, bar);
+            }
+             */
+
             if (!(ev.xkey.state & MOD))
                 break;
 
