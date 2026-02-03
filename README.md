@@ -1,6 +1,6 @@
 # Glass WM
 
-**Glass** is a lightweight X11 window manager written in C using Xlib.\
+**Glass** is a lightweight X11 floating window manager written in C using Xlib.\
 It is designed to be simple, fast, and highly configurable.\
 Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details and [release](RELEASE.md) for updates.
 
@@ -48,4 +48,3 @@ Keep changes simple, explicit, and aligned with the project’s philosophy.
 ## License
 
 Glass is licensed under the [GNU General Public License v3.0](LICENSE).
-

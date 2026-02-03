@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include "display.c"
 #include "log.c"
 
 typedef enum gBindType {
@@ -40,17 +41,6 @@ gBind* gBindAdd(gBind* tail, KeySym bind, gBindType type, void* data) {
 
     return a;
 }
-
-typedef struct gDisplay {
-    char* name;
-    u32 height;
-    u32 width;
-    u32 posx;
-    u32 posy;
-    u32 gaptop, gapbottom, gapright, gapleft;
-
-    struct gDisplay* next;
-} gDisplay;
 
 typedef struct gConfig {
     gBind* bindhead;

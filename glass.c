@@ -14,6 +14,7 @@
 #include "include/log.c"
 #include "include/client.c"
 #include "include/viewport.c"
+#include "include/display.c"
 
 #define MOD Mod4Mask   // Super key
 #define GVIEWPORTS 9
@@ -197,7 +198,18 @@ void cycle_windows() {
     gClient *c = clients;
     while (c) {
         if (c->viewport == currentViewport) {
-            XRaiseWindow(dpy, c->window);
+            //XRaiseWindow(dpy, c->window)
+            //
+            /*
+            if (conf->displays) {
+                int cx, cy;
+                if (XQueryPointer(dpy, root, &root_ret, &child_ret, &rx, &ry, &wx, &wy, &mask)) {
+                    cx = rx; cy=ry;
+                    gDisplay* hi = gGetMouseDisplay(conf->displayhead, cx,cy);
+                    if (hi)
+                }
+            }
+             */
             switch_focus(c->window);
 
             if (conf->warpPointer) {
@@ -206,6 +218,7 @@ void cycle_windows() {
             }
             return;
         }
+
         c = c->next;
     }
 }
@@ -270,23 +283,29 @@ void toggle_fullscreen(Window w) {
     }
 }
 
+
 int check_all_clients() {
     XWindowAttributes a;
     register int n = 0;
     char buffer[256];
     gClient* prev = NULL;
     gClient* c = clients;
+    gClient* pf = NULL; // previous focus
     while (c) {
         gClient* next = c->next;
 
         if (XGetWindowAttributes(dpy, c->window, &a)) {
             c->x = a.x; c->y = a.y; c->width = a.width; c->height = a.height; n++; prev = c;
+            if (prev_focused) if (c->window == prev_focused) pf=c;
         } else {
             if (prev) prev->next = next;
             else clients = next;
 
+
             if (focused == c->window) {
-                gClient* ppp = find_client(clients, prev_focused);
+                gClient* ppp = pf;
+                if (!pf) ppp = find_client(clients, prev_focused);
+
                 if (ppp && ppp->viewport == currentViewport) switch_focus(prev_focused);
                 else focused = None;
             }
@@ -726,8 +745,10 @@ int main() {
             int dx = ev.xmotion.x_root - start_x;
             int dy = ev.xmotion.y_root - start_y;
 
+            if (!(dx || dy)) break;
+
             if (moving) {
-                if (dx && dy) XMoveWindow(dpy, target, win_x + dx, win_y + dy);
+                XMoveWindow(dpy, target, win_x + dx, win_y + dy);
             } else if (resizing) {
                 XResizeWindow(dpy, target,
                               (win_w + dx > 50) ? win_w + dx : 50,
