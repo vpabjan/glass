@@ -66,16 +66,9 @@ static inline gDisplay* new_empty_display() {
     return p;
 }
 
-gConfig* read_config() {
-    char path[256];
+gConfig* default_config() {
     gConfig* conf = (gConfig*)calloc(1, sizeof(gConfig));
     if (!conf) return NULL;
-
-    snprintf(path, sizeof(path), "%s/.glass/glass.conf", getenv("HOME"));
-    FILE *f = fopen(path, "r");
-
-
-    // defaults
     conf->displayhead = NULL;
     conf->autotile = 0;
     conf->displays = 0;
@@ -84,10 +77,25 @@ gConfig* read_config() {
     conf->primaryDisplay = NULL;
     conf->logWindows = 1;
     conf->shrc = 1;
-    //conf->modmenu = 1;
+    return conf;
+}
+
+gConfig* read_config(char* path, u8 home) {
+    gConfig* conf = default_config();
+    if (!conf) return NULL;
+    char finalpath[512];
+    FILE* f = NULL;
+
+    if (home) {
+        //snprintf(path, sizeof(path), "%s/.glass/glass.conf", getenv("HOME"));
+        snprintf(finalpath, sizeof(finalpath), "%s/%s", getenv("HOME"), path);
+        f = fopen(finalpath, "r");
+    } else {
+        f = fopen(path, "r");
+    }
 
     if (!f) {
-        return conf;
+        return NULL;
     }
 
     gDisplay* tempdisp = NULL;

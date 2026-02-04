@@ -341,18 +341,28 @@ int main() {
 
     grunning = 1;
 
-    glog("Initialize variables...", LOGTYPE_INIT);
 
     glog("Set up environment...", LOGTYPE_INIT);
 
     init_env();
 
 
-    glog("Load config...", LOGTYPE_INIT);
-    conf = read_config();
-    if (!conf) {
-        glog("Cannot read config! Defaults will be applied for the session.", LOGTYPE_ERR);
+    glog("Trying config path '$HOME/.glass/glass.conf'", LOGTYPE_INIT);
+    conf = read_config(".glass/glass.conf", 1);
+    if (conf) goto initdisp;
+    if (conf == NULL) {
+        glog("Trying config path '/var/lib/glass/default/glass.conf'", LOGTYPE_INIT);
+        conf = read_config("/var/lib/glass/default/glass.conf", 0);
     }
+
+    if (conf == NULL) {
+        glog("Cannot read config! Defaults will be applied for the session.", LOGTYPE_ERR);
+        conf = default_config();
+    } else {
+        glog("Successfully read config.", LOGTYPE_INIT);
+    }
+
+initdisp:
 
     glog("Attempting to grab display...", LOGTYPE_INIT);
     dpy = XOpenDisplay(NULL);

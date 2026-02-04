@@ -1,6 +1,12 @@
 #!/bin/sh
+
 set -e
 
+USER=$(id -un)
+HOST=$(uname -n)
+
+
+PS4="$USER@$HOST~# "
 
 
 FLAGS="-std=gnu23 \
@@ -19,11 +25,22 @@ LFLAGS="
 ARCH=${ARCH:-native}
 CC=${CC:-cc}
 
-echo "[*] Building Glass..."
-time $CC -o glass glass.c -lX11 $FLAGS $LFLAGS
+time {
+    echo "[*] Setting up build directory"
+    set -x
+    rm -rf build
+    mkdir -p build
+    { set +x; } 2>/dev/null
 
+    echo "[*] Building Glass..."
+    set -x
+    $CC -o build/glass glass.c -lX11 $FLAGS $LFLAGS
+    { set +x; } 2>/dev/null
 
-echo "[*] Building glassbg..."
-time $CC -o glassbg glassbg.c -lImlib2 -lX11 $FLAGS $LFLAGS
+    echo "[*] Building glassbg..."
+    set -x
+    $CC -o build/glassbg glassbg.c -lImlib2 -lX11 $FLAGS $LFLAGS
+    { set +x; } 2>/dev/null
 
-echo "[✓] Build OK"
+    echo "[✓] Build OK"
+}

@@ -4,13 +4,12 @@ USER=$(id -un)
 HOST=$(uname -n)
 
 
-
 PS4="$USER@$HOST~# "
 
 echo "[*] Installing Glass..."
 
-[ -x ./glass ] || {
-    echo "glass binary not found (run ./build.sh first)"
+[ -x ./build/glass ] || {
+    echo "  -> glass binary not found!"
     exit 1
 }
 
@@ -18,8 +17,8 @@ echo "[*] Installing Glass..."
 # binaries
 echo "  -> Installing binaries..."
 set -x
-install -m755 glass "/bin/glass"
-install -m755 glassbg "/bin/glassbg"
+install -m755 build/glass "/bin/glass"
+install -m755 build/glassbg "/bin/glassbg"
 { set +x; } 2>/dev/null
 
 echo "  -> Installing scripts..."

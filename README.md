@@ -1,7 +1,9 @@
-# Glass WM
+# Glass
 
 **Glass** is a lightweight X11 floating window manager written in C using Xlib.\
 It is designed to be simple, fast, and highly configurable.\
+
+
 Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details and [release](RELEASE.md) for updates.
 
 ---
@@ -23,15 +25,22 @@ It is explicitly viewport-focused. As a result, window minimization is not suppo
 
 Glass favors clarity, explicit control, and minimal abstraction over convenience features.
 
+### But Why?
+
+No other window manager could *just* do it right.
+
 ---
 
-<img width="960" height="540" alt="A screenshot showing Glass" src="https://github.com/user-attachments/assets/2d158a98-b1ab-4438-a9e2-b6c1c46581ea" />
+<img width="960" height="540" alt="Screenshot_20260204_131856" src="https://github.com/user-attachments/assets/d0e6742c-d6da-4024-b685-f5f5515073ec" />
 
+---
 
 
 ## Installation
 
 This section has been removed as per the existance of the [Glass wiki](https://github.com/vpabjan/glass/wiki). Refer to the wiki for installation and configuration steps. You can find the installation manual on the page [Installing Glass](https://github.com/vpabjan/glass/wiki/Installing-Glass).
+
+---
 
 ## Contributing
 

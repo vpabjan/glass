@@ -13,7 +13,7 @@ typedef struct gDisplay {
     struct gDisplay* next;
 } gDisplay;
 
-u8 gGetMouseDisplayIndex(gDisplay* head, i32 mx, i32 my) {
+static inline u8 gGetMouseDisplayIndex(gDisplay* head, i32 mx, i32 my) {
     register u8 a = 128;
     gDisplay* b = head;
     while (b) {
@@ -25,7 +25,7 @@ u8 gGetMouseDisplayIndex(gDisplay* head, i32 mx, i32 my) {
     return a;
 }
 
-gDisplay* gGetMouseDisplay(gDisplay* head, i32 mx, i32 my) {
+static inline gDisplay* gGetMouseDisplay(gDisplay* head, i32 mx, i32 my) {
     gDisplay* a = head;
     while (a) {
         if (mx > a->posx && mx < a->posx + a->width &&
