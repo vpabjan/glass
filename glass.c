@@ -27,6 +27,7 @@ unsigned int mask;
 Window root_ret, child_ret;
 
 Display *dpy;
+int screen;
 
 gConfig* conf;
 
@@ -104,7 +105,8 @@ void switch_viewport(u8 vp) {
         next_focus = focused;
     } else if (c) {
         if (viewports[currentViewport].last_focused != None) {
-            next_focus = viewports[currentViewport].last_focused;
+            gClient* l = find_client(clients, viewports[currentViewport].last_focused);
+            if (l) next_focus = viewports[currentViewport].last_focused;
         }
     }
 
@@ -362,6 +364,8 @@ int main() {
         glog("Successfully obtained display...", LOGTYPE_INIT);
     }
 
+    screen = DefaultScreen(dpy);
+
     glog("Successfully obtained display...", LOGTYPE_INIT);
 
     XSetErrorHandler(x_error_handler);
@@ -487,14 +491,14 @@ int main() {
 
 
     //bar = gWidgetsModMenuCreate(dpy, root, barx, bary, barw, barh);
-    //bargc = XCreateGC(dpy, bar, 0, NULL);
+    // = XCreateGC(dpy, bar, 0, NULL);
     //XSetForeground(dpy, bargc, 0xFFFFFF);
     //XSetBackground(dpy, bargc, 0x000000);
     //XFontStruct* font = XLoadQueryFont(dpy, "fixed");
 
     //XSetFont(dpy, bargc, font->fid);
 
-
+    //gWidgetsModMenuDraw(dpy, bar, DefaultGC(dpy, screen));
     //XMapWindow(dpy, bar);
 
     glog("Done!", LOGTYPE_INIT);

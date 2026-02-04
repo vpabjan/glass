@@ -52,7 +52,7 @@ typedef struct gConfig {
     u8 shrc;
     u8 logWindows;
     u8 autotile;
-    u8 modmenu;
+    //u8 modmenu;
     u8 displays;
 } gConfig;
 
@@ -84,7 +84,7 @@ gConfig* read_config() {
     conf->primaryDisplay = NULL;
     conf->logWindows = 1;
     conf->shrc = 1;
-    conf->modmenu = 1;
+    //conf->modmenu = 1;
 
     if (!f) {
         return conf;
