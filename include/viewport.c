@@ -3,6 +3,6 @@
 
 
 typedef struct gViewport {
-    u8 mode; // 0 float or tile
+    u8 mode; // 0 float
     Window last_focused;
 } gViewport;

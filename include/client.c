@@ -11,6 +11,7 @@ typedef struct gClient {
     u8 viewport;
     u8 fullscreen;
     int old_x, old_y, old_w, old_h;
+    u8 mono;
 
     struct gClient* next;
 } gClient;

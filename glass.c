@@ -20,6 +20,7 @@
 #define MOD Mod4Mask   // Super key
 #define GVIEWPORTS 9
 
+extern void toggle_fullscreen(Window);
 
 
 int rx, ry, wx, wy;
@@ -229,22 +230,27 @@ void cycle_windows() {
     }
 }
 
-void toggle_fullscreen(Window w) {
+void toggle_mono(Window w) {
     gClient *c = find_client(clients, w);
     if (!c) return;
 
+    if (c->viewport != currentViewport) return;
+
     if (!conf->displayhead) {
-        glog("No displays configured for fullscreen!", LOGTYPE_ERR);
+        glog("No displays configured for mono!", LOGTYPE_ERR);
         return;
     }
 
-    if (c->fullscreen) {
+    if (c->mono) {
         XSetWindowBorderWidth(dpy, w, 4);
         XMoveResizeWindow(dpy, w, c->old_x, c->old_y, c->old_w, c->old_h);
         c->x = c->old_x; c->y = c->old_y; c->width = c->old_w; c->height = c->old_h;
-        c->fullscreen = 0;
-
+        c->mono = 0;
     } else {
+        if (c->fullscreen) {
+            toggle_fullscreen(c->window);
+        }
+
         XWindowAttributes attr;
         if (XGetWindowAttributes(dpy, w, &attr)) {
             c->old_x = attr.x;
@@ -259,35 +265,74 @@ void toggle_fullscreen(Window w) {
                 cx = attr.x + (attr.width / 2);
                 cy = attr.y + (attr.height / 2);
             }
+            gDisplay* d = gGetMouseDisplay(conf->displayhead, cx, cy);
+            XSetWindowBorderWidth(dpy,w ,0);
 
-            gDisplay* target_disp = conf->displayhead;
-
-            for (gDisplay* d = conf->displayhead; d; d = d->next) {
-                if (cx >= d->posx && cx < d->posx + d->width &&
-                    cy >= d->posy && cy < d->posy + d->height) {
-                    target_disp = d;
-                    break;
-                }
+            if (d->nogaps) {
+                XMoveResizeWindow(dpy, w, d->posx, d->posy, d->width, d->height);
+            } else {
+                XMoveResizeWindow(dpy, w, d->posx + d->gapright, d->posy + d->gaptop, d->width - d->gapright, d->height - d->gapbottom);
             }
 
-            int nx = target_disp->posx + target_disp->gapleft;
-
-            int ny = target_disp->posy + target_disp->gaptop;
-
-            unsigned int nw = target_disp->width - target_disp->gapleft - target_disp->gapright;
-
-            unsigned int nh = target_disp->height - target_disp->gaptop - target_disp->gapbottom;
-
-            XSetWindowBorderWidth(dpy, w, 0);
-            XMoveResizeWindow(dpy, w, nx, ny, nw, nh);
             XMapRaised(dpy, w);
             XSync(dpy, False);
             XRaiseWindow(dpy, w);
-
-            c->fullscreen = 1;
+            c->mono = 1;
         }
+
     }
+
 }
+
+void toggle_fullscreen(Window w) {
+    gClient *c = find_client(clients, w);
+    if (!c) return;
+
+    if (!conf->displayhead) {
+        glog("No displays configured for fullscreen!", LOGTYPE_ERR);
+        return;
+    }
+
+    if (c->fullscreen) {
+        XSetWindowBorderWidth(dpy, w, 4);
+        XMoveResizeWindow(dpy, w, c->old_x, c->old_y, c->old_w, c->old_h);
+        c->x = c->old_x; c->y = c->old_y; c->width = c->old_w; c->height = c->old_h;
+        c->fullscreen = 0;
+    } else {
+        if (c->mono) toggle_mono(c->window);
+
+        XWindowAttributes attr;
+        if (XGetWindowAttributes(dpy, w, &attr)) {
+            c->old_x = attr.x;
+            c->old_y = attr.y;
+            c->old_w = attr.width;
+            c->old_h = attr.height;
+            int cx, cy;
+
+            if (XQueryPointer(dpy, root, &root_ret, &child_ret, &rx, &ry, &wx, &wy, &mask)) {
+                cx = rx; cy=ry;
+            } else {
+                cx = attr.x + (attr.width / 2);
+                cy = attr.y + (attr.height / 2);
+            }
+            gDisplay* d = gGetMouseDisplay(conf->displayhead, cx, cy);
+            if (d) {
+                XSetWindowBorderWidth(dpy,w ,0);
+
+                XMoveResizeWindow(dpy, w, d->posx, d->posy, d->width, d->height);
+                c->fullscreen = 1;
+                switch_focus(w);
+                XSync(dpy, False);
+
+            }
+
+        }
+
+    }
+
+}
+
+
 
 
 int check_all_clients() {
@@ -723,11 +768,12 @@ initdisp:
                 break;
             }
 
-            target = ev.xbutton.subwindow;
-
-            if (!target) break;
+            Window target = ev.xbutton.subwindow;
 
             if (target == root) break;
+
+            gClient* cunt = find_client(clients, target);
+            if (!cunt) break;
 
             switch_focus(target);
 
@@ -757,7 +803,7 @@ initdisp:
             XWindowAttributes attr;
             XGetWindowAttributes(dpy, target, &attr);
 
-            if (ev.xbutton.state & MOD && (ev.xbutton.button == Button1 || ev.xbutton.button == Button3)) {
+            if (ev.xbutton.state & MOD && (ev.xbutton.button == Button1 || ev.xbutton.button == Button3) && !(cunt->fullscreen || cunt->mono)) {
                 win_x = attr.x;
                 win_y = attr.y;
                 win_w = attr.width;
@@ -862,8 +908,16 @@ initdisp:
                     break;
                 }
                 case (BFULLSCREEN): {
-                    if (focused && focused != root) {
+                    gClient* a = find_client(clients, focused);
+                    if (a && !viewports[currentViewport].mode && a->viewport == currentViewport) { // check if mode zero (float)
                         toggle_fullscreen(focused);
+                    }
+                    break;
+                }
+                case (BMONO): {
+                    gClient* a = find_client(clients, focused);
+                    if (!viewports[currentViewport].mode && a->viewport == currentViewport) { // check if mode zero (float)
+                        toggle_mono(focused);
                     }
                     break;
                 }

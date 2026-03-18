@@ -9,9 +9,11 @@ typedef struct gDisplay {
     u32 posx;
     u32 posy;
     u32 gaptop, gapbottom, gapright, gapleft;
+    u8 nogaps;
 
     struct gDisplay* next;
 } gDisplay;
+
 
 static inline u8 gGetMouseDisplayIndex(gDisplay* head, i32 mx, i32 my) {
     register u8 a = 128;

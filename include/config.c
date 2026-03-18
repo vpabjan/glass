@@ -14,7 +14,7 @@ typedef enum gBindType {
     BWS7 = 6, BWS8 = 7, BWS9 = 8,
     BSPAWN, BQUIT, BEXIT,
     BPANEL, BCYCLE, BFULLSCREEN,
-    GTILE
+    BMONO, BAOT
 } gBindType;
 
 typedef struct gBind {
@@ -63,6 +63,7 @@ static inline gDisplay* new_empty_display() {
     p->posx = 0; p->posy = 0;
     p->gapleft = 0; p->gapright = 0;
     p->next = NULL;
+    p->nogaps = 0;
     return p;
 }
 
@@ -168,6 +169,8 @@ gConfig* read_config(char* path, u8 home) {
                 type = BCYCLE;
             } else if (strcmp(action, "fullscreen") == 0) {
                 type = BFULLSCREEN;
+            } else if (strcmp(action, "mono") == 0) {
+                type = BMONO;
             }
             gBind* new_node = gBindAdd(tail, key, type, data);
 
@@ -228,7 +231,7 @@ gConfig* read_config(char* path, u8 home) {
             } else if (selected) {
                 char* val = strtok(NULL, " \n");
                 if (!val) {
-                    if (!strcmp(option, "nogaps")) selected->gapleft = selected->gapright = selected->gaptop = selected->gapbottom = 0;
+                    if (!strcmp(option, "nogaps")) selected->nogaps = 1;
                     else if (!strcmp(option, "primary")) conf->primaryDisplay = selected;
                 } else {
                     if (!strcmp(option, "x")) selected->posx = atoi(val);
