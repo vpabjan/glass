@@ -52,6 +52,7 @@ typedef struct gConfig {
     u8 shrc;
     u8 logWindows;
     u8 autotile;
+    u8 padding;
     //u8 modmenu;
     u8 displays;
 } gConfig;
@@ -78,6 +79,7 @@ gConfig* default_config() {
     conf->primaryDisplay = NULL;
     conf->logWindows = 1;
     conf->shrc = 1;
+    conf->padding = 0;
     return conf;
 }
 
@@ -202,6 +204,13 @@ gConfig* read_config(char* path, u8 home) {
                 conf->shrc = 0;
             } else if (strcmp(option, "yes") == 0) {
                 conf->shrc = 1;
+            }
+        } else if (strcmp(arg, "padding") == 0) {
+            char* option = strtok(NULL, delim);
+            if (!option) continue;
+            int x = atoi(option);
+            if (x > 0) {
+                    conf->padding = x;
             }
         } else if (strcmp(arg, "log_windows") == 0) {
             char* option = strtok(NULL, delim);

@@ -242,7 +242,6 @@ void toggle_mono(Window w) {
     }
 
     if (c->mono) {
-        XSetWindowBorderWidth(dpy, w, 4);
         XMoveResizeWindow(dpy, w, c->old_x, c->old_y, c->old_w, c->old_h);
         c->x = c->old_x; c->y = c->old_y; c->width = c->old_w; c->height = c->old_h;
         c->mono = 0;
@@ -259,19 +258,30 @@ void toggle_mono(Window w) {
             c->old_h = attr.height;
             int cx, cy;
 
-            if (XQueryPointer(dpy, root, &root_ret, &child_ret, &rx, &ry, &wx, &wy, &mask)) {
-                cx = rx; cy=ry;
-            } else {
-                cx = attr.x + (attr.width / 2);
-                cy = attr.y + (attr.height / 2);
-            }
-            gDisplay* d = gGetMouseDisplay(conf->displayhead, cx, cy);
-            XSetWindowBorderWidth(dpy,w ,0);
+            cx = attr.x + (attr.width / 2);
+            cy = attr.y + (attr.height / 2);
 
+            gDisplay* d = conf->displayhead;
+            if (!d) return;
+            while (d) {
+                if (cx > d->posx && cx < d->posx + d->width &&
+                    cy > d->posy && cy < d->posy + d->height
+                )
+                    break;
+                d = d->next;
+            }
+
+
+            int p = conf->padding;
             if (d->nogaps) {
                 XMoveResizeWindow(dpy, w, d->posx, d->posy, d->width, d->height);
             } else {
-                XMoveResizeWindow(dpy, w, d->posx + d->gapright, d->posy + d->gaptop, d->width - d->gapright, d->height - d->gapbottom);
+                XMoveResizeWindow(dpy, w,
+                                  d->posx + d->gapright + p,
+                                  d->posy + d->gaptop + p,
+                                  d->width - (d->gapright + 2*p),
+                                  d->height - (d->gapbottom + 2*p + d->gaptop)
+                                  );
             }
 
             XMapRaised(dpy, w);
@@ -303,19 +313,23 @@ void toggle_fullscreen(Window w) {
 
         XWindowAttributes attr;
         if (XGetWindowAttributes(dpy, w, &attr)) {
+
             c->old_x = attr.x;
             c->old_y = attr.y;
             c->old_w = attr.width;
             c->old_h = attr.height;
-            int cx, cy;
+            int cx = attr.x + (attr.width / 2);
+            int cy = attr.y + (attr.height / 2);
 
-            if (XQueryPointer(dpy, root, &root_ret, &child_ret, &rx, &ry, &wx, &wy, &mask)) {
-                cx = rx; cy=ry;
-            } else {
-                cx = attr.x + (attr.width / 2);
-                cy = attr.y + (attr.height / 2);
+            gDisplay* d = conf->displayhead;
+            if (!d) return;
+            while (d) {
+                if (cx > d->posx && cx < d->posx + d->width &&
+                    cy > d->posy && cy < d->posy + d->height
+                )
+                    break;
+                d = d->next;
             }
-            gDisplay* d = gGetMouseDisplay(conf->displayhead, cx, cy);
             if (d) {
                 XSetWindowBorderWidth(dpy,w ,0);
 
@@ -331,6 +345,7 @@ void toggle_fullscreen(Window w) {
     }
 
 }
+
 
 
 
