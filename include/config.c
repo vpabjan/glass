@@ -14,7 +14,7 @@ typedef enum gBindType {
     BWS7 = 6, BWS8 = 7, BWS9 = 8,
     BSPAWN, BQUIT, BEXIT,
     BPANEL, BCYCLE, BFULLSCREEN,
-    BMONO, BAOT
+    BMONO, BAOT, BRELOAD
 } gBindType;
 
 typedef struct gBind {
@@ -173,7 +173,11 @@ gConfig* read_config(char* path, u8 home) {
                 type = BFULLSCREEN;
             } else if (strcmp(action, "mono") == 0) {
                 type = BMONO;
+            } else if (strcmp(action, "reload") == 0) {
+                type = BRELOAD;
             }
+
+
             gBind* new_node = gBindAdd(tail, key, type, data);
 
             if (conf->bindhead == NULL) {

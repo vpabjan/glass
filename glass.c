@@ -96,6 +96,8 @@ void switch_focus(Window trg)  {
 
 }
 
+
+
 void switch_viewport(u8 vp) {
     if (vp == currentViewport) return;
     Window next_focus = None;
@@ -171,6 +173,17 @@ void grab_key(KeySym sym) {
     XGrabKey(dpy, code, MOD | LockMask, root, True, GrabModeAsync, GrabModeAsync);
     XGrabKey(dpy, code, MOD | Mod2Mask, root, True, GrabModeAsync, GrabModeAsync);
     XGrabKey(dpy, code, MOD | LockMask | Mod2Mask, root, True, GrabModeAsync, GrabModeAsync);
+    return;
+}
+
+void ungrab_key(KeySym sym) {
+    KeyCode code = XKeysymToKeycode(dpy, sym);
+
+    XUngrabKey(dpy, code, MOD, root);
+    XUngrabKey(dpy, code, MOD | LockMask, root);
+    XUngrabKey(dpy, code, MOD | Mod2Mask, root);
+    XUngrabKey(dpy, code, MOD | LockMask | Mod2Mask, root);
+    return;
 }
 
 void spawn(const char *cmd) {
@@ -283,11 +296,10 @@ void toggle_mono(Window w) {
                                   d->height - (d->gapbottom + 2*p + d->gaptop)
                                   );
             }
-
-            XMapRaised(dpy, w);
-            XSync(dpy, False);
-            XRaiseWindow(dpy, w);
             c->mono = 1;
+            switch_focus(c->window);
+            XSync(dpy, False);
+
         }
 
     }
@@ -347,7 +359,12 @@ void toggle_fullscreen(Window w) {
 }
 
 
-
+int x_error_handler(Display* d, XErrorEvent*  e) {
+    char msg[512];
+    XGetErrorText(d, e->error_code, msg, sizeof(msg));
+    glog(msg, LOGTYPE_ERR);
+    return 0;
+}
 
 
 int check_all_clients() {
@@ -387,17 +404,49 @@ int check_all_clients() {
     return n;
 }
 
-int x_error_handler(Display* d, XErrorEvent*  e) {
-    char msg[512];
-    XGetErrorText(d, e->error_code, msg, sizeof(msg));
-    glog(msg, LOGTYPE_ERR);
-    return 0;
+
+
+void reload_config() {
+    glog("Reloading config...", LOGTYPE_RUNTIME);
+
+    gConfig* new_conf = read_config(".glass/glass.conf", 1);
+    if (!new_conf) {
+        new_conf = read_config("/var/lib/glass/default/glass.conf", 0);
+    }
+
+    if (!new_conf) {
+        glog("Failed to load new config, keeping current one.", LOGTYPE_ERR);
+        return;
+    }
+
+    gBind* b = conf->bindhead;
+    while (b) {
+        gBind* next = b->next;
+        ungrab_key(b->bind);
+        free(b->data);
+        free(b);
+        b = next;
+    }
+
+    gDisplay* dip = conf->displayhead;
+    while (dip) {
+        gDisplay* blip = dip->next;
+        free (dip);
+        dip = blip;
+    }
+
+    free(conf);
+    conf = new_conf;
+
+    for (gBind* h = conf->bindhead; h; h = h->next) {
+        grab_key(h->bind);
+    }
 }
 
 int main() {
     XEvent ev;
 
-    glog("Starting Glass...", LOGTYPE_INIT);
+    glog("Welcome to Glass...", LOGTYPE_INIT);
 
     grunning = 1;
 
@@ -934,6 +983,10 @@ initdisp:
                     if (!viewports[currentViewport].mode && a->viewport == currentViewport) { // check if mode zero (float)
                         toggle_mono(focused);
                     }
+                    break;
+                }
+                case (BRELOAD): {
+                    reload_config();
                     break;
                 }
                 case (BEXIT):
