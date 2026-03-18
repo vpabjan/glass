@@ -117,21 +117,21 @@ void switch_viewport(u8 vp) {
     for (gClient *c = clients; c; c = c->next) {
         XWindowAttributes attributes;
         u8 h = XGetWindowAttributes(dpy, c->window, &attributes);
+        if (c->free && h) {
+            XMapWindow(dpy, c->window);
+            c->viewport = vp;
+        }
         if (c->viewport == vp) {
             if (h) {
-                if (!attributes.map_state) {
-                    XMapWindow(dpy, c->window);
-                    if (next_focus == None) next_focus = c->window;
-                    last = c->window;
-                }
+                XMapWindow(dpy, c->window);
+                if (next_focus == None) next_focus = c->window;
+
+                last = c->window;
             }
         } else {
             if (h) {
-                if (attributes.map_state) XUnmapWindow(dpy, c->window);
-            } else {
-                 XUnmapWindow(dpy, c->window); //unmap anyway
+                XUnmapWindow(dpy, c->window);
             }
-
         }
     }
 
@@ -802,6 +802,7 @@ initdisp:
             break;
 
 
+
         case ConfigureRequest:
             XWindowChanges changes;
             changes.x = ev.xconfigurerequest.x;
@@ -993,6 +994,11 @@ initdisp:
                     if (!viewports[currentViewport].mode && a->viewport == currentViewport) { // check if mode zero (float)
                         toggle_mono(focused);
                     }
+                    break;
+                }
+                case (BFREE): {
+                    gClient* a = find_client(clients, focused);
+                    if (a) a->free = !a->free;
                     break;
                 }
                 case (BRELOAD): {

@@ -14,7 +14,7 @@ typedef enum gBindType {
     BWS7 = 6, BWS8 = 7, BWS9 = 8,
     BSPAWN, BQUIT, BEXIT,
     BPANEL, BCYCLE, BFULLSCREEN,
-    BMONO, BAOT, BRELOAD
+    BMONO, BAOT, BRELOAD, BFREE
 } gBindType;
 
 typedef struct gBind {
@@ -175,6 +175,8 @@ gConfig* read_config(char* path, u8 home) {
                 type = BMONO;
             } else if (strcmp(action, "reload") == 0) {
                 type = BRELOAD;
+            } else if (strcmp(action, "free") == 0) {
+                type = BFREE;
             }
 
 

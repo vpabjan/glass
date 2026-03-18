@@ -12,6 +12,7 @@ typedef struct gClient {
     u8 fullscreen;
     int old_x, old_y, old_w, old_h;
     u8 mono;
+    u8 free;
 
     struct gClient* next;
 } gClient;
@@ -22,6 +23,9 @@ void add_client(gClient** clients, Window w) {
     if (!c) return;
     c->window = w;
     c->viewport = 0;
+    c->mono = 0;
+    c->free = 0;
+    c->fullscreen = 0;
 
     c->next = *clients;
     *clients = c;
