@@ -118,19 +118,19 @@ void switch_viewport(u8 vp) {
         XWindowAttributes attributes;
         u8 h = XGetWindowAttributes(dpy, c->window, &attributes);
         if (c->free && h) {
-            XMapWindow(dpy, c->window);
+            if (attributes.map_state == IsUnmapped) XMapWindow(dpy, c->window);
             c->viewport = vp;
+            continue;
         }
         if (c->viewport == vp) {
             if (h) {
-                XMapWindow(dpy, c->window);
+                if (attributes.map_state == IsUnmapped) XMapWindow(dpy, c->window);
                 if (next_focus == None) next_focus = c->window;
-
                 last = c->window;
             }
         } else {
             if (h) {
-                XUnmapWindow(dpy, c->window);
+                if (attributes.map_state == IsViewable) XUnmapWindow(dpy, c->window);
             }
         }
     }
