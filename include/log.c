@@ -5,7 +5,7 @@
 #include "types.h"
 #include <unistd.h>
 
-typedef enum LOGTYPE { LOGTYPE_DONT, LOGTYPE_WINDOW, LOGTYPE_KEY, LOGTYPE_ERR, LOGTYPE_WORKSPACE, LOGTYPE_RUNTIME, LOGTYPE_INIT, LOGTYPE_BEGIN, LOGTYPE_CONFIG
+typedef enum LOGTYPE { LOGTYPE_DONT, LOGTYPE_WINDOW, LOGTYPE_KEY, LOGTYPE_ERR, LOGTYPE_WORKSPACE, LOGTYPE_RUNTIME, LOGTYPE_INIT, LOGTYPE_BEGIN, LOGTYPE_CONFIG, LOGTYPE_INITERR
     } LOGTYPE;
 
 static inline void glog(const char *msg, u8 type) {
@@ -25,7 +25,7 @@ static inline void glog(const char *msg, u8 type) {
             fprintf(f, "[key] ");
             break;
         case LOGTYPE_ERR:
-            fprintf(f, "[error] ");
+            fprintf(f, "[ERR] ");
             break;
         case LOGTYPE_WORKSPACE:
             fprintf(f, "[viewport] ");
@@ -35,6 +35,9 @@ static inline void glog(const char *msg, u8 type) {
             break;
         case LOGTYPE_BEGIN:
             fprintf(f, "---------------------------------------------------------");
+            break;
+        case LOGTYPE_INITERR:
+            fprintf(f, "[ERR] (init) ");
             break;
     }
 

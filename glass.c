@@ -446,12 +446,19 @@ void reload_config() {
 int main() {
     XEvent ev;
 
-    glog("Welcome to Glass...", LOGTYPE_INIT);
+    if (1) { // to be decided upon. for now we'll do that and yeah...'
+        system("rm -rf ~/.glass/log");
+        system("touch ~/.glass/log");
+    }
+
+    glog("", LOGTYPE_BEGIN);
+
+    glog("Welcome to Glass!", LOGTYPE_INIT);
 
     grunning = 1;
 
 
-    glog("Set up environment...", LOGTYPE_INIT);
+    glog("Initializing environment.", LOGTYPE_INIT);
 
     init_env();
 
@@ -459,13 +466,13 @@ int main() {
     glog("Trying config path '$HOME/.glass/glass.conf'", LOGTYPE_INIT);
     conf = read_config(".glass/glass.conf", 1);
     if (conf) goto initdisp;
-    if (conf == NULL) {
+    if (!conf) {
         glog("Trying config path '/var/lib/glass/default/glass.conf'", LOGTYPE_INIT);
         conf = read_config("/var/lib/glass/default/glass.conf", 0);
     }
 
-    if (conf == NULL) {
-        glog("Cannot read config! Defaults will be applied for the session.", LOGTYPE_ERR);
+    if (!conf) {
+        glog("Cannot read config! Defaults will be applied for the session.", LOGTYPE_INITERR);
         conf = default_config();
     } else {
         glog("Successfully read config.", LOGTYPE_INIT);
@@ -477,15 +484,13 @@ initdisp:
     dpy = XOpenDisplay(NULL);
     if (!dpy) {
         fprintf(stderr, "cannot open display\n");
-        glog("Cannot open display! This error is fatal, exiting.", LOGTYPE_ERR);
+        glog("Cannot open display! This error is fatal, exiting.", LOGTYPE_INITERR);
         return 1;
     } else {
-        glog("Successfully obtained display...", LOGTYPE_INIT);
+        glog("Successfully obtained display.", LOGTYPE_INIT);
     }
 
     screen = DefaultScreen(dpy);
-
-    glog("Successfully obtained display...", LOGTYPE_INIT);
 
     XSetErrorHandler(x_error_handler);
 
@@ -521,7 +526,7 @@ initdisp:
     g_ewmh_set_current_desktop(dpy, root, &ewmh, currentViewport);
 
 
-    glog("Initialize viewports...", LOGTYPE_INIT);
+    glog("Initializing viewports...", LOGTYPE_INIT);
 
     for (int x = 0; x < GVIEWPORTS; x++) {
         viewports[x].last_focused = None;
@@ -569,15 +574,20 @@ initdisp:
                   &rx, &ry, &wx, &wy,
                   &mask);
 
+    glog("Initializing local glass folder...", LOGTYPE_INIT);
+
     spawn("mkdir -p ~/.glass");
     spawn("touch ~/.glass/rc.sh");
     spawn("chmod +x ~/.glass/rc.sh");
     spawn("touch ~/.glass/glass.conf");
+    spawn("touch ~/.glass/log");
 
     if (conf->shrc) {
-        glog("Running rc.sh...", LOGTYPE_INIT);
+        glog("Spawning rc.sh...", LOGTYPE_INIT);
         spawn("~/.glass/rc.sh");
     }
+
+    glog("Initializing displays...", LOGTYPE_INIT);
 
     if (conf->displays > 0) {
             gDisplay* h = conf->displayhead;
@@ -620,7 +630,7 @@ initdisp:
     //gWidgetsModMenuDraw(dpy, bar, DefaultGC(dpy, screen));
     //XMapWindow(dpy, bar);
 
-    glog("Done!", LOGTYPE_INIT);
+    glog("Ready! Entering runtime... :)", LOGTYPE_INIT);
 
 
 
