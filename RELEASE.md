@@ -49,6 +49,19 @@
 
 ---
 
+# Version 0.1.0
+
+Version has been bumped as per major feature as well as stability improvements (including those over past versions). This is the first presentable and stable version.
+
++ huge bug fixes
++ refined window cycling
++ per display cycling
++ config option to enable or disable per display cycling
++ free mode for windows
++ runtime config reloading and bind changing
++ option to bind reload in config
++ minor helper functions
+
 ## TODO
 
 + improve panel handling. this will be done with an eventual include/panel.c
