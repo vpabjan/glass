@@ -67,7 +67,16 @@ Window wmcheck;
 
 Cursor cursor;
 
+u8 get_window_center(Window a, int* x, int* y) {
+    XWindowAttributes attrib;
 
+    if (XGetWindowAttributes(dpy, a, &attrib)) {
+        *x = attrib.x + attrib.width / 2;
+        *y = attrib.y + attrib.height / 2;
+        return 1;
+    }
+    return 0;
+}
 
 void switch_focus(Window trg)  {
     gClient *f = find_client(clients, focused);
@@ -196,50 +205,57 @@ void spawn(const char *cmd) {
 }
 
 void cycle_windows() {
-    if (!clients) return;
+    if (!clients || !conf->displays || !conf->displayhead) return;
 
     gClient *active = find_client(clients, focused);
+    int mx, my, dy;
+    Window dwin;
+    gDisplay *active_display = NULL;
 
-    if (active && active->next) {
-        if (clients == active) {
-            clients = active->next;
-        } else {
-            gClient *prev = clients;
-            while (prev->next != active) prev = prev->next;
-            prev->next = active->next;
-        }
-        gClient *tail = clients;
-        while (tail->next) tail = tail->next;
-        tail->next = active;
-        active->next = NULL;
-    }
-
-
-    gClient *c = clients;
-    while (c) {
-        if (c->viewport == currentViewport) {
-            //XRaiseWindow(dpy, c->window)
-            //
-            /*
-            if (conf->displays) {
-                int cx, cy;
-                if (XQueryPointer(dpy, root, &root_ret, &child_ret, &rx, &ry, &wx, &wy, &mask)) {
-                    cx = rx; cy=ry;
-                    gDisplay* hi = gGetMouseDisplay(conf->displayhead, cx,cy);
-                    if (hi)
+    if (XQueryPointer(dpy, root, &dwin, &dwin, &mx, &my, &dy, &dy, &mask)) {
+        for (gDisplay* d = conf->displayhead; d; d = d->next) {
+            if (mx >= d->posx && mx < d->posx + d->width &&
+                my >= d->posy && my < d->posy + d->height) {
+                active_display = d;
+            break;
                 }
-            }
-             */
-            switch_focus(c->window);
+        }
+    }
+    if (!active_display) active_display = conf->primaryDisplay;
 
-            if (conf->warpPointer) {
-                XWindowAttributes a;
-                if (XGetWindowAttributes(dpy, c->window, &a)) XWarpPointer(dpy, None, c->window, 0, 0, 0, 0, a.width / 2, a.height / 2);
+    gClient *start = (active && active->next) ? active->next : clients;
+    gClient *c = start;
+    int wrapped = 0;
+
+    while (c) {
+        if (c->viewport == currentViewport && c != active) {
+            int wx, wy;
+            if (get_window_center(c->window, &wx, &wy)) {
+                if (wx >= active_display->posx && wx < active_display->posx + active_display->width &&
+                    wy >= active_display->posy && wy < active_display->posy + active_display->height) {
+
+                    switch_focus(c->window);
+
+                if (conf->warpPointer) {
+                    XWindowAttributes a;
+                    if (XGetWindowAttributes(dpy, c->window, &a)) {
+                        XWarpPointer(dpy, None, c->window, 0, 0, 0, 0, a.width / 2, a.height / 2);
+                    }
+                }
+                return;
+                    }
             }
-            return;
         }
 
         c = c->next;
+
+        if (!c && !wrapped) {
+            c = clients;
+            wrapped = 1;
+        }
+        if (wrapped && c == start) {
+            break;
+        }
     }
 }
 
@@ -770,11 +786,13 @@ initdisp:
                     if (pos_y + attrib.height > res_y) pos_y = res_y - attrib.height;
 
                     XMoveWindow(dpy, c->window, pos_x, pos_y);
-                } else
-                    if (conf->warpPointer && c->viewport == currentViewport) {
-                        XWarpPointer(dpy, None, focused, 0,0,0,0,attrib.width/2, attrib.height/2);
-                    }
+
                 }
+                if (conf->warpPointer && c->viewport == currentViewport) {
+                    XWarpPointer(dpy, None, focused, 0,0,0,0,attrib.width/2, attrib.height/2);
+                }
+
+            }
 
                 g_ewmh_set_window_type(dpy, c->window, &ewmh);
                 g_ewmh_set_motif_hints(dpy, c->window, 1, &ewmh);
@@ -843,7 +861,7 @@ initdisp:
                 break;
             }
 
-            Window target = ev.xbutton.subwindow;
+            target = ev.xbutton.subwindow;
 
             if (target == root) break;
 
@@ -923,7 +941,7 @@ initdisp:
             break;
 
         case ButtonRelease:
-            if (moving || resizing && (ev.xbutton.button == Button1 || ev.xbutton.button == Button3)) {
+            if ((moving || resizing) && (ev.xbutton.button == Button1 || ev.xbutton.button == Button3)) {
                 moving = resizing = 0;
                 target = None;
             }
@@ -1013,7 +1031,7 @@ initdisp:
                     for (gClient* c = clients; c; c = c->next) free(c);
 
                     grunning = 0;
-                    continue;
+                    break;
                 case (BCYCLE):
                     cycle_windows();
                     break;
