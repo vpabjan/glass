@@ -4,7 +4,7 @@
 It is designed to be simple, fast, and highly configurable.
 
 
-Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details and [release](RELEASE.md)/[release history](https://github.com/vpabjan/glass/releases) for updates.
+Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details and [release](RELEASE.md) or [release history](https://github.com/vpabjan/glass/releases) for updates.
 
 ---
 
@@ -36,7 +36,7 @@ No other window manager could *just* do it right.
 ---
 
 
-## Installation
+## ~~Installation~~
 
 This section has been removed as per the existance of the [Glass wiki](https://github.com/vpabjan/glass/wiki). Refer to the wiki for installation and configuration steps. You can find the installation manual on the page [Installing Glass](https://github.com/vpabjan/glass/wiki/Installing-Glass).
 
