@@ -205,23 +205,25 @@ void spawn(const char *cmd) {
 }
 
 void cycle_windows() {
-    if (!clients || !conf->displays || !conf->displayhead) return;
+    if (!clients || (!conf->displays && conf->perDisplayCycle) || !conf->displayhead) return;
 
     gClient *active = find_client(clients, focused);
     int mx, my, dy;
     Window dwin;
     gDisplay *active_display = NULL;
 
-    if (XQueryPointer(dpy, root, &dwin, &dwin, &mx, &my, &dy, &dy, &mask)) {
-        for (gDisplay* d = conf->displayhead; d; d = d->next) {
-            if (mx >= d->posx && mx < d->posx + d->width &&
-                my >= d->posy && my < d->posy + d->height) {
-                active_display = d;
-            break;
-                }
+    if (conf->perDisplayCycle) {
+        if (XQueryPointer(dpy, root, &dwin, &dwin, &mx, &my, &dy, &dy, &mask)) {
+            for (gDisplay* d = conf->displayhead; d; d = d->next) {
+                if (mx >= d->posx && mx < d->posx + d->width &&
+                    my >= d->posy && my < d->posy + d->height) {
+                    active_display = d;
+                break;
+                    }
+            }
         }
+        if (!active_display) active_display = conf->primaryDisplay;
     }
-    if (!active_display) active_display = conf->primaryDisplay;
 
     gClient *start = (active && active->next) ? active->next : clients;
     gClient *c = start;
@@ -229,12 +231,24 @@ void cycle_windows() {
 
     while (c) {
         if (c->viewport == currentViewport && c != active) {
-            int wx, wy;
-            if (get_window_center(c->window, &wx, &wy)) {
-                if (wx >= active_display->posx && wx < active_display->posx + active_display->width &&
-                    wy >= active_display->posy && wy < active_display->posy + active_display->height) {
+            int valid_target = 0;
 
-                    switch_focus(c->window);
+            if (conf->perDisplayCycle) {
+                // If perDisplayCycle, the window has to be on the active display
+                int wx, wy;
+                if (get_window_center(c->window, &wx, &wy)) {
+                    if (wx >= active_display->posx && wx < active_display->posx + active_display->width &&
+                        wy >= active_display->posy && wy < active_display->posy + active_display->height) {
+                        valid_target = 1;
+                        }
+                }
+            } else {
+                // choose any target on viewport if perDisplayCycle is off
+                valid_target = 1;
+            }
+
+            if (valid_target) {
+                switch_focus(c->window);
 
                 if (conf->warpPointer) {
                     XWindowAttributes a;
@@ -242,8 +256,7 @@ void cycle_windows() {
                         XWarpPointer(dpy, None, c->window, 0, 0, 0, 0, a.width / 2, a.height / 2);
                     }
                 }
-                return;
-                    }
+                return; // Success
             }
         }
 
@@ -253,6 +266,8 @@ void cycle_windows() {
             c = clients;
             wrapped = 1;
         }
+
+        // Prevent infinite loop
         if (wrapped && c == start) {
             break;
         }

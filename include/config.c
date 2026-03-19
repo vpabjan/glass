@@ -46,6 +46,7 @@ typedef struct gConfig {
     gBind* bindhead;
     gDisplay* displayhead;
     gDisplay* primaryDisplay;
+    u8 perDisplayCycle;
 
     // bools
     u8 warpPointer;
@@ -80,6 +81,7 @@ gConfig* default_config() {
     conf->logWindows = 1;
     conf->shrc = 1;
     conf->padding = 0;
+    conf->perDisplayCycle = 1;
     return conf;
 }
 
@@ -202,6 +204,14 @@ gConfig* read_config(char* path, u8 home) {
                 conf->autotile = 0;
             } else if (strcmp(option, "tile") == 0) {
                 conf->autotile = 1;
+            }
+        } else if (strcmp(arg, "per_display_cycle") == 0) {
+            char* option = strtok(NULL, delim);
+            if (!option) continue;
+            if (strcmp(option, "yes") == 0) {
+                conf->perDisplayCycle = 1;
+            } else if (strcmp(option, "no") == 0) {
+                conf->perDisplayCycle = 0;
             }
         } else if (strcmp(arg, "do_rc") == 0) {
             char* option = strtok(NULL, delim);
