@@ -4,7 +4,7 @@
 It is designed to be simple, fast, and highly configurable.
 
 
-Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details and [release](RELEASE.md) for updates.
+Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details and [release](RELEASE.md)/[release history](https://github.com/vpabjan/glass/releases) for updates.
 
 ---
 
