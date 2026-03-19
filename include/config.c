@@ -14,7 +14,7 @@ typedef enum gBindType {
     BWS7 = 6, BWS8 = 7, BWS9 = 8,
     BSPAWN, BQUIT, BEXIT,
     BPANEL, BCYCLE, BFULLSCREEN,
-    BMONO, BAOT, BRELOAD, BFREE
+    BMONO, BAOT, BRELOAD, BFREE, BTILE
 } gBindType;
 
 typedef struct gBind {

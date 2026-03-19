@@ -1,7 +1,7 @@
 # Glass
 
 **Glass** is a lightweight X11 floating window manager written in C using Xlib.\
-It is designed to be simple, fast, and highly configurable. It compiles on -O3 and is rich on security flags, btw.
+It is designed to be simple, fast, and highly configurable. It compiles on -O3 and is rich in security flags, btw.
 
 
 Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details and [release](RELEASE.md) or [release history](https://github.com/vpabjan/glass/releases) for updates.
