@@ -35,6 +35,26 @@ No other window manager could *just* do it right.
 
 ---
 
+## Testing
+| Operating system | Architecture | Compiles? | Runs? |
+|------------------|--------------|-----------|-------|
+| Alpine Linux     | i686         | ✔✔        | ✔✔    |
+| Arch Linux       | x86_64       | ✔✔        | ✔✔    |
+| Arch Linux 32    | x686         | ✔✔        | ✔✔    |
+| FreeBSD          | x86_64       | ✔✔        | ✘     |
+
+### Legend
+
+| Sign | Compiling | Running |
+| ---- | -------   | ------ |
+| ✔✔   | Compiles successfully with no tweaks.                                 | Runs without issues or tweaks. |
+| ✔    | Compiles successfully with tweaks.                                    | Runs but with stability or compatibility issues. |
+| ✘    | Does not compile and tweaks have not been tested.                     | Does not run by default and tweaks have not been tested. |
+| ✘✘   | Does not compile with tweaks.                                         | Does not run after further testing. |
+| ✘✘✘  | Compiling and testing dropped                                         ||
+
+
+---
 
 ## ~~Installation~~
 
