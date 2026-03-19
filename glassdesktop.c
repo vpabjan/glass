@@ -121,7 +121,30 @@ void read_config() {
     fclose(f);
 }
 
+void sync_root_wallpaper(Display *dpy, Window root, Window my_win) {
+    Atom prop_root = XInternAtom(dpy, "_XROOTPMAP_ID", True);
+    Atom actual_type;
+    int actual_format;
+    unsigned long nitems, bytes_after;
+    unsigned char *prop;
 
+    if (prop_root != None && XGetWindowProperty(dpy, root, prop_root, 0, 1, False,
+        AnyPropertyType, &actual_type, &actual_format,
+        &nitems, &bytes_after, &prop) == Success) {
+
+        if (prop != NULL) {
+            Pixmap root_pixmap = *(Pixmap *)prop;
+
+            XSetWindowBackgroundPixmap(dpy, my_win, root_pixmap);
+            XClearWindow(dpy, my_win);
+
+            XFree(prop);
+        }
+        } else {
+            XSetWindowBackground(dpy, my_win, 0x11111b);
+            XClearWindow(dpy, my_win);
+        }
+}
 
 int main() {
     Display *dpy = XOpenDisplay(NULL);
@@ -142,6 +165,7 @@ int main() {
                                CWOverrideRedirect | CWBackPixel | CWEventMask, &attrs);
 
     XMapWindow(dpy, win);
+    sync_root_wallpaper(dpy, root, win);
     XLowerWindow(dpy, win);
 
     GC gc = XCreateGC(dpy, win, 0, NULL);
@@ -162,16 +186,21 @@ int main() {
             int origin_y = (sh / 2) - cam_y;
 
             // Draw Grid
-            for (int i = (origin_x % GRID_SIZE) - GRID_SIZE; i < sw + GRID_SIZE; i += GRID_SIZE) {
-                XSetForeground(dpy, gc, (i == origin_x) ? 0x45475a : 0x313244);
-                XSetLineAttributes(dpy, gc, (i == origin_x) ? 3 : 1, LineSolid, CapButt, JoinMiter);
-                XDrawLine(dpy, win, gc, i, 0, i, sh);
+
+            if (is_panning || is_moving_icon) {
+                for (int i = (origin_x % GRID_SIZE) - GRID_SIZE; i < sw + GRID_SIZE; i += GRID_SIZE) {
+                    XSetForeground(dpy, gc, (i == origin_x) ? 0x45475a : 0x313244);
+                    XSetLineAttributes(dpy, gc, (i == origin_x) ? 3 : 1, LineSolid, CapButt, JoinMiter);
+                    XDrawLine(dpy, win, gc, i, 0, i, sh);
+                }
+                for (int j = (origin_y % GRID_SIZE) - GRID_SIZE; j < sh + GRID_SIZE; j += GRID_SIZE) {
+                    XSetForeground(dpy, gc, (j == origin_y) ? 0x45475a : 0x313244);
+                    XSetLineAttributes(dpy, gc, (j == origin_y) ? 3 : 1, LineSolid, CapButt, JoinMiter);
+                    XDrawLine(dpy, win, gc, 0, j, sw, j);
+                }
             }
-            for (int j = (origin_y % GRID_SIZE) - GRID_SIZE; j < sh + GRID_SIZE; j += GRID_SIZE) {
-                XSetForeground(dpy, gc, (j == origin_y) ? 0x45475a : 0x313244);
-                XSetLineAttributes(dpy, gc, (j == origin_y) ? 3 : 1, LineSolid, CapButt, JoinMiter);
-                XDrawLine(dpy, win, gc, 0, j, sw, j);
-            }
+
+
 
             // Draw Icons
             gIcon *curr = icons;
@@ -180,7 +209,7 @@ int main() {
                 int iy = origin_y + (curr->grid_y * GRID_SIZE);
 
                 if (ix > -GRID_SIZE && ix < sw && iy > -GRID_SIZE && iy < sh) {
-                    XSetForeground(dpy, gc, 0xcdd6f4);
+                    XSetForeground(dpy, gc, 0xffffff);
 
                     if (is_moving_icon && grabbed_icon == curr)
                         XSetLineAttributes(dpy, gc, 2, LineOnOffDash, CapButt, JoinMiter);
@@ -244,6 +273,7 @@ int main() {
             if (is_moving_icon) save_config();
             is_panning = is_moving_icon = 0;
             grabbed_icon = NULL;
+            XClearArea(dpy, win, 0, 0, 0, 0, True);
         }
     }
 
