@@ -51,7 +51,7 @@
 
 # Version 0.1.0
 
-Version has been bumped as per major feature as well as stability improvements (including those over past versions). This is the first presentable and stable version.
+Version has been bumped up as per major feature additions as well as stability improvements (including those over past versions). This is the first presentable and stable version.
 
 + huge bug fixes
 + refined window cycling
