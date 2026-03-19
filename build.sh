@@ -37,6 +37,12 @@ set -x
 $CC $FLAGS -o build/glass glass.c -lX11 $LFLAGS
 { set +x; } 2>/dev/null
 
+echo "[*] Building Glass Desktop (glassdesktop)..."
+set -x
+$CC $FLAGS -o build/glassdesktop glassdesktop.c -lX11 $LFLAGS
+{ set +x; } 2>/dev/null
+
+
 echo "[*] Building glassbg..."
 set -x
 $CC $FLAGS -o build/glassbg glassbg.c -lImlib2 -lX11 $LFLAGS

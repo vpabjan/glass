@@ -38,13 +38,13 @@ static inline void g_ewmh_init(Display *dpy, gEWMH *e) {
     e->wm_name             = XInternAtom(dpy, "_NET_WM_NAME", 0);
     e->utf8                = XInternAtom(dpy, "UTF8_STRING", 0);
 
-    /* decorator support */
+    // attempt to allow decorators
     e->window_type         = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", 0);
     e->window_type_normal  = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_NORMAL", 0);
     e->motif_hints         = XInternAtom(dpy, "_MOTIF_WM_HINTS", 0);
     e->gtk_frame_extents   = XInternAtom(dpy, "_GTK_FRAME_EXTENTS", 0);
 
-    /* optional maximized/fullscreen */
+    // mono/fullscreen
     e->wm_state            = XInternAtom(dpy, "_NET_WM_STATE", 0);
     e->max_vert            = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_VERT", 0);
     e->max_horz            = XInternAtom(dpy, "_NET_WM_STATE_MAXIMIZED_HORZ", 0);

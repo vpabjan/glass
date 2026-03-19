@@ -24,6 +24,7 @@ set -x
 
 install -m755 build/glass "/bin/glass"
 install -m755 build/glassbg "/bin/glassbg"
+install -m755 build/glassdesktop "/bin/glassdesktop"
 
 { set +x; } 2>/dev/null
 
