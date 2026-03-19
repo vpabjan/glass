@@ -4,26 +4,27 @@ set -e
 
 USER=$(id -un)
 HOST=$(uname -n)
-
-
 PS4="$USER@$HOST~# "
 
+ARCH=${ARCH:-native}
+CC=${CC:-cc}
 
 FLAGS="-std=gnu23 \
+-march=$ARCH \
+-O3 \
+-flto=auto \
 -D_FORTIFY_SOURCE=3 \
--O2 \
 -fno-plt \
 -fstack-protector-strong \
 -fPIE \
 -fomit-frame-pointer \
--finline-functions"
+-finline-functions \
+-fexceptions"
 
-LFLAGS="
--pie \
--flto"
-
-ARCH=${ARCH:-native}
-CC=${CC:-cc}
+LFLAGS="-pie \
+-flto=auto \
+-Wl,-z,relro \
+-Wl,-z,now"
 
 echo "[*] Setting up build directory"
 set -x
@@ -33,12 +34,12 @@ mkdir -p build
 
 echo "[*] Building Glass..."
 set -x
-$CC -o build/glass glass.c -lX11 $FLAGS $LFLAGS
+$CC $FLAGS -o build/glass glass.c -lX11 $LFLAGS
 { set +x; } 2>/dev/null
 
 echo "[*] Building glassbg..."
 set -x
-$CC -o build/glassbg glassbg.c -lImlib2 -lX11 $FLAGS $LFLAGS
+$CC $FLAGS -o build/glassbg glassbg.c -lImlib2 -lX11 $LFLAGS
 { set +x; } 2>/dev/null
 
 echo "[✓] Build OK"
