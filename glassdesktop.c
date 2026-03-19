@@ -216,7 +216,27 @@ int main() {
                     else
                         XSetLineAttributes(dpy, gc, 2, LineSolid, CapButt, JoinMiter);
 
-                    XDrawRectangle(dpy, win, gc, ix + 20, iy + 20, 40, 40);
+                    switch (curr->type) {
+                        case (ICON_FILE): {
+                            XDrawLine(dpy, win, gc, ix + 20, iy + 20, ix + 50, iy + 20); // top
+                            XDrawLine(dpy, win, gc, ix + 20, iy + 20, ix + 20, iy + 60); // left
+                            XDrawLine(dpy, win, gc, ix + 60, iy + 30, ix + 60, iy + 60); // right
+                            XDrawLine(dpy, win, gc, ix + 20, iy + 60, ix + 60, iy + 60); // bottom
+                            XDrawLine(dpy, win, gc, ix + 50, iy + 20, ix + 60, iy + 30); // corner
+                            break;
+                        }
+                        case (ICON_FOLDER): {
+                            XDrawLine(dpy, win, gc, ix + 20, iy + 20, ix + 20, iy + 60); // left
+                            XDrawLine(dpy, win, gc, ix + 20, iy + 60, ix + 60, iy + 60); // bottom
+                            XDrawLine(dpy, win, gc, ix + 60, iy + 30, ix + 60, iy + 60); // right
+
+                            XDrawLine(dpy, win, gc, ix + 20, iy + 20, ix + 30, iy + 20); // top left
+                            XDrawLine(dpy, win, gc, ix + 30, iy + 20 ,ix + 45, iy + 30); // top middle
+                            XDrawLine(dpy, win, gc, ix + 45, iy + 30, ix + 60, iy + 30);
+                            break;
+                        }
+                        default: XDrawRectangle(dpy, win, gc, ix + 20, iy + 20, 40, 40);
+                    }
                     XDrawString(dpy, win, gc, ix + 10, iy + GRID_SIZE - 5, curr->label, strlen(curr->label));
                 }
                 curr = curr->next;
