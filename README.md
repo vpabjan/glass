@@ -35,6 +35,12 @@ No other window manager could *just* do it right.
 
 ---
 
+## ~~Installation~~
+
+This section has been removed as per the existance of the [Glass wiki](https://github.com/vpabjan/glass/wiki). Refer to the wiki for installation and configuration steps. You can find the installation manual on the page [Installing Glass](https://github.com/vpabjan/glass/wiki/Installing-Glass).
+
+---
+
 ## Testing
 | Operating system | Architecture | Compiles? | Runs? |
 |------------------|--------------|-----------|-------|
@@ -56,11 +62,7 @@ No other window manager could *just* do it right.
 
 ---
 
-## ~~Installation~~
 
-This section has been removed as per the existance of the [Glass wiki](https://github.com/vpabjan/glass/wiki). Refer to the wiki for installation and configuration steps. You can find the installation manual on the page [Installing Glass](https://github.com/vpabjan/glass/wiki/Installing-Glass).
-
----
 
 ## Contributing
 
