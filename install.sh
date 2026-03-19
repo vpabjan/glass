@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Check for root/superuser privileges
+# Check for root
 if [ "$(id -u)" -ne 0 ]; then
     echo "[-] Error: This script must be run as root. Please run with sudo."
     exit 1
@@ -68,7 +68,6 @@ install -m644 extra/wallpaper.jpg "/var/lib/glass/default/wallpaper.jpg"
 echo "  ---> Installing license..."
 set -x
 
-# Removed the -d flag here so it overwrites/installs the file properly
 install -m644 LICENSE "/var/lib/glass/LICENSE"
 
 { set +x; } 2>/dev/null
@@ -77,7 +76,6 @@ install -m644 LICENSE "/var/lib/glass/LICENSE"
 echo "  ---> Installing text files..."
 set -x
 
-# Removed the -d flag here as well
 install -m644 README.md "/var/lib/glass/README.md"
 install -m644 RELEASE.md "/var/lib/glass/RELEASE.md"
 
@@ -86,7 +84,6 @@ install -m644 RELEASE.md "/var/lib/glass/RELEASE.md"
 echo "  ---> Setting version..."
 set -x
 
-# Removed the -d flag here too
 install -m644 version "/var/lib/glass/version"
 
 { set +x; } 2>/dev/null

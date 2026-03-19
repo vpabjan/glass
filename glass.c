@@ -648,19 +648,6 @@ initdisp:
         XSync(dpy, False);
     }
 
-
-
-    //bar = gWidgetsModMenuCreate(dpy, root, barx, bary, barw, barh);
-    // = XCreateGC(dpy, bar, 0, NULL);
-    //XSetForeground(dpy, bargc, 0xFFFFFF);
-    //XSetBackground(dpy, bargc, 0x000000);
-    //XFontStruct* font = XLoadQueryFont(dpy, "fixed");
-
-    //XSetFont(dpy, bargc, font->fid);
-
-    //gWidgetsModMenuDraw(dpy, bar, DefaultGC(dpy, screen));
-    //XMapWindow(dpy, bar);
-
     glog("Ready! Entering runtime... :)", LOGTYPE_INIT);
 
 
@@ -756,12 +743,6 @@ initdisp:
             XSetWindowBorderWidth(dpy, w, 4);
             XSelectInput(dpy, w, EnterWindowMask | FocusChangeMask | PropertyChangeMask | StructureNotifyMask);
 
-            /*
-            if (!grabbed) {
-                grabbed = w;
-            }
-             */
-
             gClient* rparent = find_client(clients, par);
             if (rparent) c->viewport = rparent->viewport;
             else c->viewport = currentViewport;
@@ -831,7 +812,7 @@ initdisp:
             break;
 
         case UnmapNotify:
-            //remove_client(ev.xunmap.window);
+
             break;
 
 
@@ -885,26 +866,6 @@ initdisp:
 
             switch_focus(target);
 
-
-            /* TODO
-
-            if (!(ev.xbutton.state & MOD) && ev.xbutton.button == Button1) {
-                if (!grabbed) {
-                    grabbed=target;
-                    break;
-                }
-                if (target != grabbed) {
-                    XUngrabButton(dpy, Button1, AnyModifier, grabbed);
-                    XGrabButton(dpy, Button1, AnyModifier, target, False, ButtonPressMask, GrabModeSync, GrabModeAsync, None, None);
-                    grabbed=target;
-                }
-                XAllowEvents(dpy, ReplayPointer, CurrentTime);
-                XRaiseWindow(dpy, target);
-                break;
-            }
-
-             */
-
             XRaiseWindow(dpy, target);
             //XAllowEvents(dpy, ReplayPointer, CurrentTime);
 
@@ -931,11 +892,7 @@ initdisp:
             break;
 
         case KeyRelease:
-            /*
-            if (ev.xbutton.button == XK_Super_L) {
-                XUnmapWindow(dpy, bar);
-            }
-             */
+
             break;
 
         case MotionNotify:
@@ -965,17 +922,6 @@ initdisp:
 
         case KeyPress:
             KeySym sym = XKeycodeToKeysym(dpy, ev.xkey.keycode, 0);
-            //KeySym sym = XLookupKeysym(&ev.xkey,
-            //    (ev.xkey.state & ShiftMask) ? 1 : 0);
-
-
-            /*
-            if (ev.xbutton.button == XK_Super_L) {
-                gWidgetsModMenuDraw(dpy, bar, bargc);
-                XMapWindow(dpy, bar);
-                XRaiseWindow(dpy, bar);
-            }
-             */
 
             if (!(ev.xkey.state & MOD))
                 break;
@@ -1017,14 +963,14 @@ initdisp:
                 }
                 case (BFULLSCREEN): {
                     gClient* a = find_client(clients, focused);
-                    if (a && !viewports[currentViewport].mode && a->viewport == currentViewport) { // check if mode zero (float)
+                    if (a && !viewports[currentViewport].mode && a->viewport == currentViewport) {
                         toggle_fullscreen(focused);
                     }
                     break;
                 }
                 case (BMONO): {
                     gClient* a = find_client(clients, focused);
-                    if (!viewports[currentViewport].mode && a->viewport == currentViewport) { // check if mode zero (float)
+                    if (!viewports[currentViewport].mode && a->viewport == currentViewport) {
                         toggle_mono(focused);
                     }
                     break;
