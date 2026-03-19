@@ -1,4 +1,4 @@
-# Version 0.0.1
+# Version 0.0.1 - Alpha
 
 + configuration with ~/.glass/glass.conf
 + sloppy focus
@@ -40,7 +40,7 @@
 
 ---
 
-# Version 0.0.5
+# Version 0.0.5 - V
 
 + updating and installing now works properly, glass is now installed systemwide
 + fullscreen border fixes
@@ -49,7 +49,7 @@
 
 ---
 
-# Version 0.1.0
+# Version 0.1.0 - Dawn
 
 Version has been bumped up as per major feature additions as well as stability improvements (including those over past versions). This is the first presentable and stable version.
 
@@ -61,6 +61,13 @@ Version has been bumped up as per major feature additions as well as stability i
 + runtime config reloading and bind changing
 + option to bind reload in config
 + minor helper functions
+
+# Version 0.1.1 - Twilight
+
++ glassdesktop, YAY!
++ script changes
++ cleanups
++ add version names to this file
 
 ## TODO
 
