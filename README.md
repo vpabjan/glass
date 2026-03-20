@@ -67,12 +67,13 @@ This section has been removed as per the existance of the [Glass wiki](https://g
 ---
 
 ## Testing
-| Operating system | Architecture | Compiles? | Runs? |
-|------------------|--------------|-----------|-------|
-| Alpine Linux     | i686         | ✔✔        | ✔✔    |
-| Arch Linux       | x86_64       | ✔✔        | ✔✔    |
-| Arch Linux 32    | x686         | ✔✔        | ✔✔    |
-| FreeBSD          | x86_64       | ✔✔        | ✘     |
+| Operating system | Architecture | Compiles? | Runs? | Notes |
+|------------------|--------------|-----------|-------|-------|
+| Alpine Linux     | i686         | ✔✔        | ✔✔    | requires imlib-dev, libx11-dev |
+| Alpine Linux     | x86_64       | ✔✔        | ✔✔    | requires imlib-dev, libx11-dev | 
+| Arch Linux       | x86_64       | ✔✔        | ✔✔    | |
+| Arch Linux 32    | x686         | ✔✔        | ✔✔    | | 
+| FreeBSD          | x86_64       | ✔✔        | ✘     | |
 
 ### Legend
 
