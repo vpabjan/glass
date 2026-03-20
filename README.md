@@ -8,12 +8,24 @@ Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details an
 
 ---
 
+<img width="960" height="540" alt="Screenshot_20260204_131856" src="https://github.com/user-attachments/assets/d0e6742c-d6da-4024-b685-f5f5515073ec" />
+
+---
+
 ## Features
 
 - Core window management: move, resize, close, and move windows between viewports
 - Lightweight and minimal (~2.7 MB RAM usage)
 - Compatible with status bars such as [polybar](https://github.com/polybar/polybar) (recommended) or **xfce4-panel**
 - Compatible with compositors such as [picom](https://github.com/yshui/picom) (recommended)
+
+---
+
+## Showcase
+
+https://github.com/user-attachments/assets/11bcdf36-5fc2-4043-9e00-aa9a198d0ec5
+
+This setup uses the glass window manager with polybar, feh and glassdesktop.
 
 ---
 
@@ -28,10 +40,6 @@ Glass favors clarity, explicit control, and minimal abstraction over convenience
 ### But Why?
 
 No other window manager could *just* do it right.
-
----
-
-<img width="960" height="540" alt="Screenshot_20260204_131856" src="https://github.com/user-attachments/assets/d0e6742c-d6da-4024-b685-f5f5515073ec" />
 
 ---
 
@@ -63,6 +71,8 @@ This section has been removed as per the existance of the [Glass wiki](https://g
 ---
 
 
+
+---
 
 ## Contributing
 
