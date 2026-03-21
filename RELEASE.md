@@ -69,6 +69,9 @@ Version has been bumped up as per major feature additions as well as stability i
 + cleanups
 + add version names to this file
 
-## TODO
+# Version 0.1.2 - Environ
 
-+ improve panel handling. this will be done with an eventual include/panel.c
++ glassconfig, the user may now configure glass thru glassconfig, this adds an ncurses dependency
++ config saving in config.c
++ build & install changes (also removed .sh appendix)
++ added clean script and moved build folder from build to out

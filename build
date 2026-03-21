@@ -28,24 +28,29 @@ LFLAGS="-pie \
 
 echo "[*] Setting up build directory"
 set -x
-rm -rf build
-mkdir -p build
+rm -rf out
+mkdir -p out
 { set +x; } 2>/dev/null
 
 echo "[*] Building Glass..."
 set -x
-$CC $FLAGS -o build/glass glass.c -lX11 $LFLAGS
+$CC $FLAGS -o out/glass glass.c -lX11 $LFLAGS
 { set +x; } 2>/dev/null
 
 echo "[*] Building Glass Desktop (glassdesktop)..."
 set -x
-$CC $FLAGS -o build/glassdesktop glassdesktop.c -lX11 $LFLAGS
+$CC $FLAGS -o out/glassdesktop glassdesktop.c -lX11 $LFLAGS
 { set +x; } 2>/dev/null
 
 
 echo "[*] Building glassbg..."
 set -x
-$CC $FLAGS -o build/glassbg glassbg.c -lImlib2 -lX11 $LFLAGS
+$CC $FLAGS -o out/glassbg glassbg.c -lImlib2 -lX11 $LFLAGS
+{ set +x; } 2>/dev/null
+
+echo "[*] Building glassconfig..."
+set -x
+$CC $FLAGS -o out/glassconfig glassconfig.c -lX11 -lncurses $LFLAGS
 { set +x; } 2>/dev/null
 
 echo "[✓] Build OK"

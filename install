@@ -13,7 +13,7 @@ PS4="$USER@$HOST~# "
 
 echo "[*] Installing Glass..."
 
-[ -x ./build/glass ] || {
+[ -x ./out/glass ] || {
     echo "  -> glass binary not found!"
     exit 1
 }
@@ -22,9 +22,10 @@ echo "[*] Installing Glass..."
 echo "  -> Installing binaries..."
 set -x
 
-install -m755 build/glass "/bin/glass"
-install -m755 build/glassbg "/bin/glassbg"
-install -m755 build/glassdesktop "/bin/glassdesktop"
+install -m755 out/glass "/bin/glass"
+install -m755 out/glassbg "/bin/glassbg"
+install -m755 out/glassdesktop "/bin/glassdesktop"
+install -m755 out/glassconfig "/bin/glassconfig"
 
 { set +x; } 2>/dev/null
 
