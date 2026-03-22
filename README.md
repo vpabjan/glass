@@ -32,11 +32,15 @@ Check out the [Glass wiki](https://github.com/vpabjan/glass/wiki) for details an
 
 *glassbg* is a tool for changing wallpapers. It provides scale, tile and center options for the given image.
 
+### glassconfig
+*glassconfig* is a tool for configuring Glass instead of manually editing its config file.
+
 ### glassdesktop
 
 *glassdesktop* is an experimental desktop layer providing a simple, spatial interface for managing files, folders, and commands. It operates on a grid-based layout with a movable view, allowing icons to exist in a persistent coordinate space rather than a fixed screen position. It is designed to remain minimal and independent, integrating with glass without being tightly coupled to it.
 
 ---
+
 
 ## Showcase
 
